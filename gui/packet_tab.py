@@ -6,7 +6,7 @@ Features non-root live capture, BPF filters, offline pcap analysis, and top-talk
 import os
 from typing import Any, Dict, Optional
 
-from PyQt6.QtCore import QThread, QTimer, pyqtSignal, Qt
+from PyQt6.QtCore import QObject, QThread, QTimer, pyqtSignal, Qt
 from PyQt6.QtWidgets import (
     QComboBox,
     QFileDialog,
@@ -28,6 +28,12 @@ from PyQt6.QtWidgets import (
 )
 
 from core.controller import ThreatForensicSuite
+
+
+class CaptureSignalBridge(QObject):
+    """Thread-safe Qt signal bridge to transfer live streaming lines from background threads to GUI."""
+    line_received = pyqtSignal(str)
+    capture_finished = pyqtSignal(int)
 
 
 class PcapAnalysisWorker(QThread):
@@ -61,6 +67,12 @@ class PacketTab(QWidget):
         self._capture_seconds = 0
         self._timer = QTimer(self)
         self._timer.timeout.connect(self._update_timer)
+        
+        # Thread-safe Qt signal bridge for live stream lines
+        self.signal_bridge = CaptureSignalBridge()
+        self.signal_bridge.line_received.connect(self._on_capture_line, Qt.ConnectionType.QueuedConnection)
+        self.signal_bridge.capture_finished.connect(self._on_capture_finished, Qt.ConnectionType.QueuedConnection)
+        
         self._init_ui()
 
     def _init_ui(self):
@@ -276,6 +288,14 @@ class PacketTab(QWidget):
         if dur > 0 and self._capture_seconds >= dur:
             self._stop_live_capture()
 
+    def _on_capture_line(self, line: str):
+        """Thread-safe slot invoked on the GUI thread when a streaming line is received."""
+        self.log_view.append(line)
+
+    def _on_capture_finished(self, rc: int):
+        """Thread-safe slot invoked on the GUI thread when the capture process terminates."""
+        self.log_view.append(f"[+] Capture process exited (code {rc}).")
+
     def _start_live_capture(self):
         iface = self.iface_combo.currentData() or "lo"
         dur = self.duration_spin.value()
@@ -289,10 +309,11 @@ class PacketTab(QWidget):
         self.log_view.append(f"[*] Starting live packet capture on interface '{iface}'...")
 
         def _line_cb(line: str):
-            self.log_view.append(line)
+            # Emit via Qt signal to ensure GUI execution in main thread
+            self.signal_bridge.line_received.emit(line)
 
         def _finished_cb(rc: int):
-            self.log_view.append(f"[+] Capture process exited (code {rc}).")
+            self.signal_bridge.capture_finished.emit(rc)
 
         pcap_path, started = self.suite.start_packet_capture(
             interface=iface,
@@ -304,7 +325,11 @@ class PacketTab(QWidget):
 
         if not started:
             self.log_view.append("[ERROR] Could not start capture process.")
-            self._stop_live_capture()
+            self._timer.stop()
+            self.start_btn.setEnabled(True)
+            self.stop_btn.setEnabled(False)
+            self.live_status_badge.setText("STATUS: ERROR")
+            self.live_status_badge.setStyleSheet("color: #f85149; font-weight: bold; font-size: 11px;")
             return
 
         self._current_pcap = pcap_path
@@ -320,7 +345,7 @@ class PacketTab(QWidget):
         pcap_path, rc = self.suite.stop_packet_capture()
         self.log_view.append(f"[+] Packet capture halted. Output saved to: {pcap_path}")
 
-        # Automatically trigger analysis of captured file
+        # Automatically trigger analysis of captured file if exists and non-empty
         if pcap_path and os.path.exists(pcap_path) and os.path.getsize(pcap_path) > 0:
             self.pcap_file_input.setText(pcap_path)
             self._analyze_selected_pcap()
@@ -442,3 +467,4 @@ class PacketTab(QWidget):
                 return f"{num_bytes:3.1f} {unit}"
             num_bytes /= 1024.0
         return f"{num_bytes:.1f} TB"
+

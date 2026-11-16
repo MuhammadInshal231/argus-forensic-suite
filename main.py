@@ -85,10 +85,15 @@ def run_gui(suite: ThreatForensicSuite):
     from PyQt6.QtWidgets import QApplication
     from gui.main_window import MainWindow
 
-    # Handle display environment fallback if headless
+    # Check for X11 / Wayland display
     if not os.environ.get("DISPLAY") and not os.environ.get("WAYLAND_DISPLAY"):
-        os.environ["QT_QPA_PLATFORM"] = "offscreen"
-        os.environ["QT_QPA_PLATFORMTHEME"] = ""
+        if os.path.exists("/tmp/.X11-unix/X0"):
+            os.environ["DISPLAY"] = ":0"
+            if os.path.exists(os.path.expanduser("~/.Xauthority")) and "XAUTHORITY" not in os.environ:
+                os.environ["XAUTHORITY"] = os.path.expanduser("~/.Xauthority")
+        else:
+            os.environ["QT_QPA_PLATFORM"] = "offscreen"
+            os.environ["QT_QPA_PLATFORMTHEME"] = ""
 
     app = QApplication(sys.argv)
     app.setApplicationName("Project ARGUS")
@@ -96,7 +101,7 @@ def run_gui(suite: ThreatForensicSuite):
     window = MainWindow(suite)
     window.show()
 
-    # If offscreen, don't block indefinitely
+    # If explicitly offscreen, don't block indefinitely
     if os.environ.get("QT_QPA_PLATFORM") == "offscreen":
         print("[*] Running in offscreen display mode.")
         return 0
@@ -133,3 +138,4 @@ def main():
 
 if __name__ == "__main__":
     sys.exit(main())
+

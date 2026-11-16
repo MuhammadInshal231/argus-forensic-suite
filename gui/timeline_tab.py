@@ -174,7 +174,7 @@ class TimelineTab(QWidget):
         vbox.addWidget(lbl_val)
         return card
 
-    def refresh_timeline(self):
+    def refresh_timeline(self, *args):
         mod = self.module_combo.currentData()
         sev = self.sev_combo.currentData()
         query_text = self.search_input.text().strip() or None
@@ -312,3 +312,4 @@ class TimelineTab(QWidget):
             )
         except Exception as exc:
             QMessageBox.critical(self, "Export Error", f"Failed to export timeline report:\n{exc}")
+
