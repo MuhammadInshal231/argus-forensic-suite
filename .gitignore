@@ -12,11 +12,22 @@ htmlcov/
 venv/
 ENV/
 
-# Project workspace runtime output (keep directory structure)
+# Project workspace runtime output
+workspace/
 workspace/*
 !workspace/.gitkeep
+
+# Database and SQLite WAL files
+*.db
+*.db-wal
+*.db-shm
+*.sqlite
+*.sqlite3
+
+# Packet captures & Raw dumps
 *.pcap
 *.pcapng
+*.cap
 *.dmp
 *.raw
 *.vmem

@@ -112,7 +112,7 @@ class ScanTab(QWidget):
         target_vbox = QVBoxLayout()
         target_vbox.addWidget(QLabel("Target IP / Subnet:"))
         self.target_input = QLineEdit("127.0.0.1")
-        self.target_input.setPlaceholderText("e.g. 127.0.0.1, 192.168.1.34, 192.168.1.1")
+        self.target_input.setPlaceholderText("e.g. 127.0.0.1, 192.168.1.100, 192.168.1.1")
         self.target_input.textChanged.connect(self._validate_target_ui)
         target_vbox.addWidget(self.target_input)
         inputs_layout.addLayout(target_vbox, stretch=3)

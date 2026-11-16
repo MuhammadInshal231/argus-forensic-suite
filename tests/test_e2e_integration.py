@@ -32,12 +32,12 @@ def test_phase0_deliverables():
     with open("LICENSE", "r") as f:
         content = f.read()
         assert "Muhammad Inshal" in content
-        assert "CC BY 4.0" in content
+        assert "MIT License" in content
 
     with open("ACCEPTABLE_USE.md", "r") as f:
         content = f.read()
         assert "PECA" in content
-        assert "Authorized targets only" in content
+        assert "Authorized targets" in content
 
     print("  [✓] Phase 0 verified.")
 

@@ -3,7 +3,7 @@
 [![Platform: Kali Linux](https://img.shields.io/badge/Platform-Kali%20Linux-blue?logo=kalilinux&logoColor=white)](https://www.kali.org/)
 [![Language: Python 3.11+](https://img.shields.io/badge/Python-3.11%2B-brightgreen?logo=python&logoColor=white)](https://www.python.org/)
 [![GUI: PyQt6](https://img.shields.io/badge/GUI-PyQt6-41CD52?logo=qt&logoColor=white)](https://riverbankcomputing.com/software/pyqt/)
-[![License: CC BY 4.0](https://img.shields.io/badge/License-CC%20BY%204.0-lightgrey.svg)](LICENSE)
+[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
 [![Policy: PECA 2016 Compliant](https://img.shields.io/badge/Policy-PECA%202016%20Compliant-orange)](ACCEPTABLE_USE.md)
 
 **Author:** Muhammad Inshal  
@@ -105,18 +105,18 @@ argus-forensic-suite/
 ├── tests/                   # Automated integration and phase verification tests
 ├── requirements.txt         # Python dependencies (PyQt6, volatility3)
 ├── README.md                # System documentation & usage blueprint
-├── LICENSE                  # Creative Commons Attribution 4.0 International (CC BY 4.0)
-├── ACCEPTABLE_USE.md        # Legal, ethical, and PECA 2016 compliance policy
+├── LICENSE                  # MIT License
+├── ACCEPTABLE_USE.md        # Ethical and legal usage guidelines (PECA 2016)
 └── .gitignore               # Clean workspace isolation
 ```
 
 ---
 
-## 🛡️ Legal Governance & Technical Guardrails
+## 🛡️ Legal Notice & Technical Guardrails
 
-Project ARGUS is developed exclusively for legitimate academic and defensive security analysis under the **Creative Commons Attribution 4.0 (CC BY 4.0)** license and adheres to the **Prevention of Electronic Crimes Act (PECA) 2016**:
+Project ARGUS is licensed under the **MIT License**. It is intended strictly for authorized security testing, forensic education, and research purposes only. The author accepts no liability for misuse, unauthorized scanning, or damages resulting from the use of this software. Users are responsible for complying with all applicable laws, including the **Prevention of Electronic Crimes Act (PECA) 2016**.
 
-1. **Target Allowlist Enforcement:** `core/scan_module.py` enforces a strict allowlist restricting scan targets strictly to loopback (`127.0.0.1`, `localhost`) and RFC 1918 private subnets (`10.0.0.0/8`, `172.16.0.0/12`, `192.168.0.0/16`). Scans directed at external internet targets are rejected at the application level.
+1. **Target Allowlist Enforcement:** `core/scan_module.py` enforces a strict allowlist restricting scan targets strictly to loopback (`127.0.0.1`, `localhost`) and RFC 1918 private subnets (`10.0.0.0/8`, `172.16.0.0/12`, `192.168.0.0/16`). Scans directed at external internet targets are rejected at the application level unless explicitly authorized.
 2. **Non-Root Packet Capture:** Packet analysis is engineered to function under the standard user `wireshark` group without requiring execution as root.
 3. **Controlled Forensic Artifacts:** Memory forensics is restricted to self-generated hypervisor snapshots (VirtualBox/VMware/QEMU) and verified educational training dumps.
 
@@ -139,7 +139,7 @@ sudo usermod -aG wireshark $USER
 ### 2. Environment Setup
 ```bash
 # Clone the repository
-git clone https://github.com/MuhammadInshal/argus-forensic-suite.git
+git clone https://github.com/MuhammadInshal231/argus-forensic-suite.git
 cd argus-forensic-suite
 
 # Set up virtual environment and install dependencies
@@ -186,10 +186,11 @@ Project ARGUS includes an extensive automated test suite covering all phases of 
 
 ---
 
-## 📄 License & Attribution
+## 📄 License & Disclaimer
 
 Project ARGUS — Cyber Threat & Forensic Analysis Suite  
 Copyright (c) 2026 Muhammad Inshal  
 
-Licensed under the **Creative Commons Attribution 4.0 International License (CC BY 4.0)**.  
-See [`LICENSE`](LICENSE) and [`ACCEPTABLE_USE.md`](ACCEPTABLE_USE.md) for full governance details.
+Licensed under the **MIT License**. See [`LICENSE`](LICENSE) for the full license text.  
+Intended for authorized testing and education only; the author accepts no liability for misuse. See [`ACCEPTABLE_USE.md`](ACCEPTABLE_USE.md) for usage guidelines.
+
