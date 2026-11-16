@@ -153,8 +153,8 @@ class ThreatForensicSuite:
     # Module B: Vulnerability Scanner
     # ---------------------------------------------------------
     def validate_target(self, target: str, allow_custom: bool = False) -> Tuple[bool, str]:
-        """Checks target against authorized lab allowlist and dynamically detected host IPs."""
-        return is_target_allowed(target, allow_custom=allow_custom)
+        allowed, message, _ = is_target_allowed(target, allow_custom=allow_custom)
+        return allowed, message
 
     def scan_target(
         self,

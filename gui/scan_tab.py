@@ -15,6 +15,7 @@ from PyQt6.QtWidgets import (
     QHeaderView,
     QLabel,
     QLineEdit,
+    QMessageBox,
     QProgressBar,
     QPushButton,
     QSplitter,
@@ -144,7 +145,7 @@ class ScanTab(QWidget):
         status_row = QHBoxLayout()
         self.custom_auth_checkbox = QCheckBox("Authorize Custom / External Target (I certify ownership/authorization under PECA 2016)")
         self.custom_auth_checkbox.setStyleSheet("font-size: 11px; color: #8b949e;")
-        self.custom_auth_checkbox.toggled.connect(lambda: self._validate_target_ui(self.target_input.text()))
+        self.custom_auth_checkbox.clicked.connect(self._on_override_clicked)
         status_row.addWidget(self.custom_auth_checkbox)
 
         self.guardrail_badge = QLabel()
@@ -216,6 +217,22 @@ class ScanTab(QWidget):
         splitter.setSizes([320, 150])
 
         layout.addWidget(splitter, stretch=1)
+
+    def _on_override_clicked(self, checked: bool):
+        if checked:
+            reply = QMessageBox.warning(
+                self,
+                "Target Authorization Confirmation",
+                "You are enabling authorization override for external/custom targets.\n\n"
+                "By proceeding, you certify that you possess explicit ownership or written authorization "
+                "to scan this target per the Acceptable Use Guidelines and PECA 2016.\n\n"
+                "Do you confirm this authorization?",
+                QMessageBox.StandardButton.Yes | QMessageBox.StandardButton.No,
+                QMessageBox.StandardButton.No
+            )
+            if reply != QMessageBox.StandardButton.Yes:
+                self.custom_auth_checkbox.setChecked(False)
+        self._validate_target_ui(self.target_input.text())
 
     def _create_metric_card(self, title: str, initial_val: str, color_hex: str) -> QFrame:
         card = QFrame()

@@ -1,6 +1,5 @@
 """
 core/db.py - Unified SQLite Database Layer for Project ARGUS
-Provides thread-safe access and schema management for chronological event logging.
 """
 
 import json
@@ -24,21 +23,29 @@ CREATE INDEX IF NOT EXISTS idx_events_timestamp ON events(timestamp);
 CREATE INDEX IF NOT EXISTS idx_events_module ON events(module);
 """
 
-# Global lock fallback if no explicit lock is supplied
 _DEFAULT_DB_LOCK = threading.Lock()
 
 
+def sanitize_csv_cell(val: Any) -> str:
+    s = str(val) if val is not None else ""
+    if s and s[0] in ("=", "+", "-", "@", "\t", "\r"):
+        return "'" + s
+    return s
+
+
 def init_db(db_path: str = "workspace/argus.db") -> sqlite3.Connection:
-    """
-    Initializes the SQLite database with WAL mode and creates required tables and indexes.
-    Uses check_same_thread=False for multi-threaded GUI / background worker access.
-    """
     dirname = os.path.dirname(db_path)
     if dirname:
-        os.makedirs(dirname, exist_ok=True)
+        os.makedirs(dirname, mode=0o700, exist_ok=True)
 
     conn = sqlite3.connect(db_path, check_same_thread=False)
     conn.row_factory = sqlite3.Row
+
+    try:
+        if os.path.exists(db_path):
+            os.chmod(db_path, 0o600)
+    except OSError:
+        pass
 
     with conn:
         conn.execute("PRAGMA journal_mode=WAL;")
@@ -56,18 +63,6 @@ def log_event(
     details: Dict[str, Any] | str,
     timestamp: Optional[str] = None
 ) -> int:
-    """
-    Thread-safely logs a security/forensic event into the unified timeline.
-    
-    :param conn: sqlite3 Connection object
-    :param lock: threading.Lock instance (uses fallback lock if None)
-    :param module: 'packet' | 'scan' | 'memory'
-    :param event_type: Descriptive type, e.g. 'risky_service', 'malfind_injection'
-    :param severity: 'info' | 'warning' | 'critical'
-    :param details: Dictionary or JSON string containing event metadata
-    :param timestamp: ISO 8601 UTC timestamp string (defaults to current time)
-    :return: The row id of the inserted event
-    """
     use_lock = lock if lock is not None else _DEFAULT_DB_LOCK
     
     if timestamp is None:
@@ -99,10 +94,6 @@ def query_timeline(
     limit: Optional[int] = None,
     search: Optional[str] = None
 ) -> List[Dict[str, Any]]:
-    """
-    Queries events from the unified timeline, sorted chronologically descending or ascending.
-    Returns list of dict representations with parsed JSON details where applicable.
-    """
     use_lock = lock if lock is not None else _DEFAULT_DB_LOCK
 
     clauses = []
@@ -170,12 +161,10 @@ def export_timeline(
     module: Optional[str] = None,
     severity: Optional[str] = None
 ) -> str:
-    """
-    Exports the chronological timeline to JSON or CSV for portfolio and forensic reports.
-    """
     events = query_timeline(conn, lock=lock, module=module, severity=severity)
     
-    os.makedirs(os.path.dirname(os.path.abspath(filepath)), exist_ok=True)
+    dir_path = os.path.dirname(os.path.abspath(filepath))
+    os.makedirs(dir_path, mode=0o700, exist_ok=True)
 
     if format_type.lower() == "csv":
         import csv
@@ -185,17 +174,21 @@ def export_timeline(
             writer.writeheader()
             for ev in events:
                 writer.writerow({
-                    "id": ev["id"],
-                    "timestamp": ev["timestamp"],
-                    "module": ev["module"],
-                    "event_type": ev["event_type"],
-                    "severity": ev["severity"],
-                    "details": ev["raw_details"]
+                    "id": sanitize_csv_cell(ev["id"]),
+                    "timestamp": sanitize_csv_cell(ev["timestamp"]),
+                    "module": sanitize_csv_cell(ev["module"]),
+                    "event_type": sanitize_csv_cell(ev["event_type"]),
+                    "severity": sanitize_csv_cell(ev["severity"]),
+                    "details": sanitize_csv_cell(ev["raw_details"])
                 })
     else:
-        # Default to JSON
         with open(filepath, "w", encoding="utf-8") as f:
             json.dump(events, f, indent=2, ensure_ascii=False)
+
+    try:
+        os.chmod(filepath, 0o600)
+    except OSError:
+        pass
 
     return filepath
 
@@ -204,9 +197,6 @@ def get_timeline_stats(
     conn: sqlite3.Connection,
     lock: Optional[threading.Lock] = None
 ) -> Dict[str, Any]:
-    """
-    Computes statistical counts per module and severity for the dashboard status indicators.
-    """
     use_lock = lock if lock is not None else _DEFAULT_DB_LOCK
 
     with use_lock:

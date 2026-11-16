@@ -3,14 +3,46 @@ core/memory_module.py - Memory Forensics Module (volatility3 wrapper)
 Analyzes RAM dumps to extract processes, network sockets, and code injection (malfind).
 """
 
+import hashlib
 import json
 import os
 import re
+import stat
 import sys
 from typing import Any, Dict, List, Optional, Tuple
 
 from core.db import log_event
 from core.process_runner import run_command
+
+
+def validate_and_hash_dump(dump_path: str) -> Tuple[bool, str, str, str, int]:
+    try:
+        real_path = os.path.realpath(dump_path)
+    except Exception as exc:
+        return False, f"Invalid file path: {exc}", "", "", 0
+
+    if not os.path.exists(real_path):
+        return False, f"File does not exist: {real_path}", "", "", 0
+
+    try:
+        st = os.stat(real_path)
+        if not stat.S_ISREG(st.st_mode):
+            return False, f"Target is not a regular file: {real_path}", "", "", 0
+    except Exception as exc:
+        return False, f"Could not inspect file attributes: {exc}", "", "", 0
+
+    if not os.access(real_path, os.R_OK):
+        return False, f"Permission denied: cannot read {real_path}", "", "", 0
+
+    try:
+        hasher = hashlib.sha256()
+        with open(real_path, "rb") as f:
+            for chunk in iter(lambda: f.read(65536), b""):
+                hasher.update(chunk)
+        digest = hasher.hexdigest()
+        return True, "", real_path, digest, st.st_size
+    except Exception as exc:
+        return False, f"Error hashing memory image: {exc}", "", "", 0
 
 
 SUSPICIOUS_PROCESS_NAMES = {
@@ -156,27 +188,21 @@ def analyze_dump(
     lock=None,
     timeout: int = 180
 ) -> Dict[str, Any]:
-    """
-    Orchestrates memory forensics:
-    1. Running processes (pslist)
-    2. Network connections at capture time (netscan / netstat)
-    3. Code injection detection (malfind)
-    Logs findings to unified SQLite events table.
-    """
-    dump_path = os.path.abspath(dump_path)
-    if not os.path.isfile(dump_path):
+    valid, err_msg, real_path, sha256_hash, file_size = validate_and_hash_dump(dump_path)
+    if not valid:
         return {
             "success": False,
             "dump_file": dump_path,
-            "error": f"Memory dump file not found: {dump_path}",
+            "error": err_msg,
+            "sha256": "",
+            "file_size": 0,
             "processes": [],
             "connections": [],
             "malfind_hits": [],
             "suspicious_findings": []
         }
 
-    # Check for bundled sample forensic artifact format
-    sample_data = parse_sample_forensic_artifact(dump_path)
+    sample_data = parse_sample_forensic_artifact(real_path)
     if sample_data:
         processes = sample_data.get("processes", [])
         connections = sample_data.get("connections", [])
@@ -248,7 +274,9 @@ def analyze_dump(
             event_type="dump_analysis_completed",
             severity="info",
             details={
-                "dump_file": os.path.basename(dump_path),
+                "dump_file": os.path.basename(real_path),
+                "sha256": sha256_hash,
+                "file_size": file_size,
                 "os_type": os_type,
                 "process_count": len(processes),
                 "connection_count": len(connections),
@@ -269,7 +297,9 @@ def analyze_dump(
 
     return {
         "success": True,
-        "dump_file": dump_path,
+        "dump_file": real_path,
+        "sha256": sha256_hash,
+        "file_size": file_size,
         "os_type": os_type,
         "process_count": len(processes),
         "connection_count": len(connections),

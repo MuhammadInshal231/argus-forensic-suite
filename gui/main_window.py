@@ -87,6 +87,16 @@ class MainWindow(QMainWindow):
         pills_layout.addWidget(pill_guard)
         pills_layout.addWidget(pill_db)
         pills_layout.addWidget(pill_legal)
+
+        import os
+        if hasattr(os, "geteuid") and os.geteuid() == 0:
+            pill_root = QLabel("⚠️ ROOT USER")
+            pill_root.setStyleSheet(
+                "background-color: #3b1219; color: #f85149; border: 1px solid #da3633; "
+                "border-radius: 4px; padding: 4px 8px; font-weight: bold; font-size: 11px;"
+            )
+            pills_layout.addWidget(pill_root)
+
         h_layout.addLayout(pills_layout, stretch=3)
 
         main_layout.addWidget(header_frame)

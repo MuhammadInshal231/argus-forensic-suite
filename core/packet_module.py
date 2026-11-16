@@ -96,11 +96,11 @@ def start_capture(
     """
     if not output_pcap:
         timestamp = datetime.now(timezone.utc).strftime("%Y%m%d_%H%M%S")
-        os.makedirs("workspace", exist_ok=True)
+        os.makedirs("workspace", mode=0o700, exist_ok=True)
         output_pcap = os.path.abspath(f"workspace/capture_{timestamp}.pcap")
     else:
         output_pcap = os.path.abspath(output_pcap)
-        os.makedirs(os.path.dirname(output_pcap), exist_ok=True)
+        os.makedirs(os.path.dirname(output_pcap), mode=0o700, exist_ok=True)
 
     cmd = ["tshark", "-i", interface, "-w", output_pcap]
 
@@ -110,8 +110,28 @@ def start_capture(
     if bpf_filter and bpf_filter.strip():
         cmd.extend(["-f", bpf_filter.strip()])
 
+    def _safe_line_callback(line: str):
+        if "Couldn't run dumpcap in child process" in line or "Operation not permitted" in line:
+            friendly = (
+                "[!] Permission Error: Live capture requires membership in the 'wireshark' group. "
+                "Run 'sudo usermod -aG wireshark $USER', then log out and back in."
+            )
+            if line_callback:
+                line_callback(friendly)
+        elif line_callback:
+            line_callback(line)
+
+    def _safe_finished_callback(rc: int):
+        if output_pcap and os.path.isfile(output_pcap):
+            try:
+                os.chmod(output_pcap, 0o600)
+            except OSError:
+                pass
+        if finished_callback:
+            finished_callback(rc)
+
     sp = StreamingProcess()
-    sp.start(cmd, line_callback=line_callback, finished_callback=finished_callback)
+    sp.start(cmd, line_callback=_safe_line_callback, finished_callback=_safe_finished_callback)
     return output_pcap, sp
 
 
@@ -373,3 +393,4 @@ def analyze_pcap(
         "unusual_ports": unusual_ports_list,
         "anomalies": anomalies
     }
+
