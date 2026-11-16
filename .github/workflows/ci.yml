@@ -1,0 +1,56 @@
+name: ARGUS Forensic Suite CI
+
+on:
+  push:
+    branches: [ main ]
+  pull_request:
+    branches: [ main ]
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout Repository
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+          cache: "pip"
+
+      - name: Install System Dependencies for GUI Headless Testing
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y libxkbcommon-x11-0 libxcb-icccm4 libxcb-image0 libxcb-keysyms1 libxcb-randr0 libxcb-render-util0 libxcb-xinerama0 libxcb-xfixes0 libegl1 tshark
+
+      - name: Install Python Dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r requirements.txt
+
+      - name: Run Phase 1 Process & SQLite Tests
+        run: python tests/test_phase1_process.py
+
+      - name: Run Phase 2 Packet Analyzer Tests
+        run: python tests/test_phase2_packet.py
+
+      - name: Run Phase 4 Memory Forensics Tests
+        run: python tests/test_phase4_memory.py
+
+      - name: Run ThreatForensicSuite Facade Tests
+        run: python tests/test_controller.py
+
+      - name: Run Phase 7B Security Hardening Tests
+        run: python tests/test_phase7b_security.py
+
+      - name: Run Phase 7C Correctness Tests
+        run: python tests/test_phase7c_correctness.py
+
+      - name: Run Standalone Offline Parser Suite
+        run: python tests/test_offline_parsers.py
+
+      - name: Run End-to-End Verification Pipeline
+        env:
+          QT_QPA_PLATFORM: offscreen
+        run: python tests/test_e2e_integration.py

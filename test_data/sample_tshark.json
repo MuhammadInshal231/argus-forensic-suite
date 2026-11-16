@@ -1,0 +1,59 @@
+[
+  {
+    "_index": "packets-2026-11-16",
+    "_type": "doc",
+    "_score": null,
+    "_source": {
+      "layers": {
+        "frame": {
+          "frame.encap_type": "1",
+          "frame.time": "Nov 16, 2026 12:00:01.000000000 UTC",
+          "frame.time_utc": "2026-11-16 12:00:01.000000000",
+          "frame.len": "72",
+          "frame.protocols": "eth:ethertype:ip:tcp:http"
+        },
+        "ip": {
+          "ip.src": "192.168.1.150",
+          "ip.dst": "142.250.190.46",
+          "ip.proto": "6"
+        },
+        "tcp": {
+          "tcp.srcport": "49152",
+          "tcp.dstport": "80",
+          "tcp.flags": "0x0018"
+        },
+        "http": {
+          "http.request.method": "GET",
+          "http.request.uri": "/index.html",
+          "http.host": "example.com"
+        }
+      }
+    }
+  },
+  {
+    "_index": "packets-2026-11-16",
+    "_type": "doc",
+    "_score": null,
+    "_source": {
+      "layers": {
+        "frame": {
+          "frame.encap_type": "1",
+          "frame.time": "Nov 16, 2026 12:00:02.000000000 UTC",
+          "frame.time_utc": "2026-11-16 12:00:02.000000000",
+          "frame.len": "54",
+          "frame.protocols": "eth:ethertype:ip:tcp"
+        },
+        "ip": {
+          "ip.src": "10.0.0.99",
+          "ip.dst": "192.168.1.1",
+          "ip.proto": "6"
+        },
+        "tcp": {
+          "tcp.srcport": "50000",
+          "tcp.dstport": "23",
+          "tcp.flags": "0x0002"
+        }
+      }
+    }
+  }
+]

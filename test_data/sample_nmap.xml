@@ -1,0 +1,33 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE nmaprun>
+<nmaprun scanner="nmap" args="nmap -sV -oX - 192.168.1.1" version="7.95">
+  <host>
+    <status state="up" reason="arp-response"/>
+    <address addr="192.168.1.1" addrtype="ipv4"/>
+    <hostnames>
+      <hostname name="router.local" type="PTR"/>
+    </hostnames>
+    <ports>
+      <port protocol="tcp" portid="53">
+        <state state="open" reason="syn-ack"/>
+        <service name="domain" product="dnsmasq" version="2.85" method="probed"/>
+      </port>
+      <port protocol="tcp" portid="80">
+        <state state="open" reason="syn-ack"/>
+        <service name="http" product="lighttpd" version="1.4.59" method="probed"/>
+      </port>
+      <port protocol="tcp" portid="443">
+        <state state="open" reason="syn-ack"/>
+        <service name="https" product="lighttpd" version="1.4.59" method="probed"/>
+      </port>
+      <port protocol="tcp" portid="22">
+        <state state="open" reason="syn-ack"/>
+        <service name="ssh" product="Dropbear sshd" version="2020.81" method="probed"/>
+      </port>
+    </ports>
+  </host>
+  <runstats>
+    <finished time="1700000000" timestr="Sun Nov 16 12:00:00 2026" elapsed="2.50" exit="success"/>
+    <hosts up="1" down="0" total="1"/>
+  </runstats>
+</nmaprun>

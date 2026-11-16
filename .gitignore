@@ -33,6 +33,10 @@ workspace/*
 *.vmem
 *.mem
 
+# Whitelist small synthetic test samples
+!test_data/sample_traffic.pcap
+!test_data/sample_memory.forensic
+
 # IDE & OS files
 .vscode/
 .idea/
