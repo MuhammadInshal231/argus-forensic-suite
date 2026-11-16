@@ -87,6 +87,8 @@ LINUX_PLUGINS = [
 
 def find_volatility_binary() -> Optional[str]:
     candidates = [
+        os.path.join(os.path.dirname(sys.executable), "vol"),
+        os.path.join(os.path.dirname(sys.executable), "vol3"),
         os.path.abspath(".venv/bin/vol"),
         os.path.abspath(".venv/bin/vol3"),
         "/usr/local/bin/vol",
@@ -105,6 +107,12 @@ def find_volatility_binary() -> Optional[str]:
     stdout, _, rc = run_command(["which", "vol3"])
     if rc == 0 and stdout.strip():
         return stdout.strip()
+
+    try:
+        import volatility3
+        return sys.executable
+    except ImportError:
+        pass
 
     return None
 
@@ -158,11 +166,10 @@ def run_volatility_plugin(
         return False, [], f"Memory dump file does not exist: {dump_path}"
 
     vol_bin = find_volatility_binary()
-    if vol_bin:
+    if vol_bin and vol_bin != sys.executable:
         cmd = [vol_bin, "-f", dump_path, "-r", "json", plugin]
     else:
-        py_bin = sys.executable
-        cmd = [py_bin, "-m", "volatility3.cli", "-f", dump_path, "-r", "json", plugin]
+        cmd = [sys.executable, "-m", "volatility3.cli", "-f", dump_path, "-r", "json", plugin]
 
     stdout, stderr, rc = run_command(cmd, timeout=timeout)
 
