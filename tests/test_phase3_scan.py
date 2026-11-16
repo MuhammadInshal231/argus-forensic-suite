@@ -53,7 +53,7 @@ def test_nmap_xml_parser():
   </host>
 </nmaprun>
 """
-    status, ports = parse_nmap_xml(sample_xml)
+    status, ports, meta = parse_nmap_xml(sample_xml)
     assert status == "up"
     assert len(ports) == 2  # Only open ports
     assert ports[0]["port"] == 22
@@ -90,3 +90,4 @@ if __name__ == "__main__":
     test_real_scan_localhost()
     print("  [+] test_real_scan_localhost passed")
     print("[SUCCESS] All Phase 3 tests passed!")
+

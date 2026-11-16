@@ -108,7 +108,7 @@ def test_phase3_scan_module():
     </ports>
   </host>
 </nmaprun>"""
-    status, ports = parse_nmap_xml(sample_xml)
+    status, ports, meta = parse_nmap_xml(sample_xml)
     assert status == "up"
     assert len(ports) == 2
     telnet_port = next(p for p in ports if p["port"] == 23)
@@ -225,3 +225,4 @@ if __name__ == "__main__":
     print("=" * 70)
     print("[ALL ACCEPTANCE CRITERIA PASSED SUCCESSFULLY]")
     print("=" * 70)
+

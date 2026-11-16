@@ -91,21 +91,32 @@ def run_volatility_plugin(
     if rc != 0 and not stdout:
         return False, [], f"Volatility execution failed (exit code {rc}): {stderr}"
 
+    # Extract clean JSON payload from stdout (ignoring framework banners/progress lines)
+    json_candidate = stdout
+    start_bracket = stdout.find("[")
+    start_brace = stdout.find("{")
+    valid_starts = [idx for idx in [start_bracket, start_brace] if idx != -1]
+    
+    if valid_starts:
+        start_idx = min(valid_starts)
+        end_idx = max(stdout.rfind("]"), stdout.rfind("}"))
+        if end_idx > start_idx:
+            json_candidate = stdout[start_idx:end_idx + 1]
+
     try:
-        data = json.loads(stdout)
+        data = json.loads(json_candidate)
         if isinstance(data, list):
             return True, data, ""
         elif isinstance(data, dict):
-            # Some versions return dict with results or header
             rows = data.get("rows", [data])
             return True, rows, ""
         return True, [], ""
     except json.JSONDecodeError:
-        # In case stdout is json lines
+        # In case stdout is newline-delimited JSON (JSONL)
         rows = []
         for line in stdout.splitlines():
             line = line.strip()
-            if not line:
+            if not line or not (line.startswith("{") and line.endswith("}")):
                 continue
             try:
                 item = json.loads(line)
@@ -114,7 +125,12 @@ def run_volatility_plugin(
                 pass
         if rows:
             return True, rows, ""
-        return False, [], f"Failed to parse Volatility JSON output: {stdout[:500]}"
+        
+        # Friendly diagnostic if Volatility requirements were not satisfied
+        clean_err = stderr or stdout[:500]
+        if "Unsatisfied requirement" in stdout or "layer_name" in stdout:
+            clean_err = "Volatility: Memory layer/symbols not recognized. Ensure image is acquired cleanly (.raw/.vmem/.dmp) and OS profile matches."
+        return False, [], f"Volatility error: {clean_err}"
 
 
 def parse_sample_forensic_artifact(dump_path: str) -> Optional[Dict[str, Any]]:
@@ -332,3 +348,4 @@ def _normalize_malfind(raw_rows: List[Dict[str, Any]]) -> List[Dict[str, Any]]:
             "hexdump": str(hex_dump)
         })
     return normalized
+

@@ -152,15 +152,17 @@ class ThreatForensicSuite:
     # ---------------------------------------------------------
     # Module B: Vulnerability Scanner
     # ---------------------------------------------------------
-    def validate_target(self, target: str) -> Tuple[bool, str]:
-        """Checks target against authorized lab allowlist."""
-        return is_target_allowed(target)
+    def validate_target(self, target: str, allow_custom: bool = False) -> Tuple[bool, str]:
+        """Checks target against authorized lab allowlist and dynamically detected host IPs."""
+        return is_target_allowed(target, allow_custom=allow_custom)
 
     def scan_target(
         self,
         target: str,
-        scan_type: str = "-sV",
-        timeout: int = 180
+        scan_type: str = "-sV -T4 --open -Pn",
+        timeout: int = 180,
+        allow_custom: bool = False,
+        line_callback: Optional[Callable[[str], None]] = None
     ) -> Dict[str, Any]:
         """
         Runs an Nmap vulnerability/port scan against an authorized target.
@@ -170,7 +172,9 @@ class ThreatForensicSuite:
             scan_type=scan_type,
             conn=self.conn,
             lock=self.lock,
-            timeout=timeout
+            timeout=timeout,
+            allow_custom=allow_custom,
+            line_callback=line_callback
         )
 
     # ---------------------------------------------------------
@@ -213,3 +217,4 @@ class ThreatForensicSuite:
                 self.conn.close()
             except Exception:
                 pass
+
