@@ -1,0 +1,30 @@
+# Python artifacts
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.pytest_cache/
+.coverage
+htmlcov/
+
+# Virtual Environment
+.venv/
+venv/
+ENV/
+
+# Project workspace runtime output (keep directory structure)
+workspace/*
+!workspace/.gitkeep
+*.pcap
+*.pcapng
+*.dmp
+*.raw
+*.vmem
+*.mem
+
+# IDE & OS files
+.vscode/
+.idea/
+*.swp
+*~
+.DS_Store

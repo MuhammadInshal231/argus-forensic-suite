@@ -1,0 +1,33 @@
+{
+  "os_type": "windows",
+  "source_image": "lab_win10_compromised.raw",
+  "capture_timestamp": "2026-11-16T12:30:00Z",
+  "processes": [
+    {"pid": 4, "ppid": 0, "name": "System", "create_time": "2026-11-16 08:00:01", "threads": 142},
+    {"pid": 380, "ppid": 4, "name": "smss.exe", "create_time": "2026-11-16 08:00:02", "threads": 4},
+    {"pid": 524, "ppid": 516, "name": "csrss.exe", "create_time": "2026-11-16 08:00:03", "threads": 12},
+    {"pid": 620, "ppid": 516, "name": "wininit.exe", "create_time": "2026-11-16 08:00:03", "threads": 2},
+    {"pid": 708, "ppid": 620, "name": "services.exe", "create_time": "2026-11-16 08:00:04", "threads": 28},
+    {"pid": 724, "ppid": 620, "name": "lsass.exe", "create_time": "2026-11-16 08:00:04", "threads": 10},
+    {"pid": 980, "ppid": 708, "name": "svchost.exe", "create_time": "2026-11-16 08:00:05", "threads": 34},
+    {"pid": 2480, "ppid": 708, "name": "explorer.exe", "create_time": "2026-11-16 08:05:12", "threads": 58},
+    {"pid": 4920, "ppid": 2480, "name": "mimikatz.exe", "create_time": "2026-11-16 08:24:45", "threads": 3},
+    {"pid": 4988, "ppid": 4920, "name": "cmd.exe", "create_time": "2026-11-16 08:24:50", "threads": 1}
+  ],
+  "connections": [
+    {"proto": "TCPv4", "local_addr": "192.168.1.150", "local_port": 49670, "foreign_addr": "192.168.1.1", "foreign_port": 445, "state": "ESTABLISHED", "pid": 4, "owner": "System"},
+    {"proto": "TCPv4", "local_addr": "192.168.1.150", "local_port": 50122, "foreign_addr": "10.0.0.99", "foreign_port": 4444, "state": "ESTABLISHED", "pid": 4988, "owner": "cmd.exe"},
+    {"proto": "TCPv4", "local_addr": "0.0.0.0", "local_port": 135, "foreign_addr": "0.0.0.0", "foreign_port": 0, "state": "LISTENING", "pid": 980, "owner": "svchost.exe"}
+  ],
+  "malfind": [
+    {
+      "pid": 2480,
+      "process_name": "explorer.exe",
+      "start_address": "0x000001dfa4b10000",
+      "end_address": "0x000001dfa4b20000",
+      "protection": "PAGE_EXECUTE_READWRITE",
+      "disassembly": "fc 48 83 e4 f0 e8 c0 00 ... c3",
+      "hexdump": "4d 5a 90 00 03 00 00 00  04 00 00 00 ff ff 00 00  |MZ..............|"
+    }
+  ]
+}
