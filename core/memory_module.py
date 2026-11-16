@@ -3,13 +3,14 @@ core/memory_module.py - Memory Forensics Module (volatility3 wrapper)
 Analyzes RAM dumps to extract processes, network sockets, and code injection (malfind).
 """
 
+from datetime import datetime, timezone
 import hashlib
 import json
 import os
 import re
 import stat
 import sys
-from typing import Any, Dict, List, Optional, Tuple
+from typing import Any, Dict, List, Optional, Set, Tuple
 
 from core.db import log_event
 from core.process_runner import run_command
@@ -57,7 +58,7 @@ SUSPICIOUS_PROCESS_NAMES = {
 }
 
 SUSPICIOUS_COMMAND_PATTERNS = [
-    r"-enc\s+[A-Za-z0-9+/=]{20,}",  # Base64 encoded powershell
+    r"-enc\s+[A-Za-z0-9+/=]{20,}",
     r"downloadstring",
     r"iex\s*\(",
     r"invoke-expression",
@@ -65,11 +66,26 @@ SUSPICIOUS_COMMAND_PATTERNS = [
     r"wget\s+.*\|\s*sh",
 ]
 
+WINDOWS_PLUGINS = [
+    "windows.pslist",
+    "windows.pstree",
+    "windows.psscan",
+    "windows.cmdline",
+    "windows.netscan",
+    "windows.malfind",
+]
+
+LINUX_PLUGINS = [
+    "linux.pslist",
+    "linux.pstree",
+    "linux.psscan",
+    "linux.sockstat",
+    "linux.malfind",
+    "linux.bash",
+]
+
 
 def find_volatility_binary() -> Optional[str]:
-    """
-    Finds the volatility 3 CLI binary path on the system.
-    """
     candidates = [
         os.path.abspath(".venv/bin/vol"),
         os.path.abspath(".venv/bin/vol3"),
@@ -82,7 +98,6 @@ def find_volatility_binary() -> Optional[str]:
         if os.path.isfile(c) and os.access(c, os.X_OK):
             return c
 
-    # Fallback to which
     stdout, _, rc = run_command(["which", "vol"])
     if rc == 0 and stdout.strip():
         return stdout.strip()
@@ -94,18 +109,50 @@ def find_volatility_binary() -> Optional[str]:
     return None
 
 
+def format_volatility_error(stdout: str, stderr: str) -> str:
+    combined = f"{stdout}\n{stderr}".strip()
+    if "Symbol table not found" in combined or "symbol table" in combined.lower() or "unsatisfied requirement" in combined.lower():
+        if "linux" in combined.lower():
+            return "Linux symbol table missing: Volatility 3 requires a matching kernel symbol table (ISF JSON) for Linux memory analysis. Symbol file not found in Volatility symbols directory."
+        return "Symbol table missing: Volatility 3 could not resolve required symbols or kernel profile for this memory image."
+    if "No suitable layer could be loaded" in combined or "layer_name" in combined:
+        return "Unsupported memory format: Volatility 3 could not identify a valid address space layer. Ensure image is acquired cleanly (.raw/.vmem/.dmp)."
+    if "timed out" in combined.lower():
+        return "Volatility plugin analysis timed out."
+    first_lines = [line.strip() for line in combined.splitlines() if line.strip() and not line.startswith("Volatility 3 Framework")]
+    if first_lines:
+        return f"Volatility diagnostic: {first_lines[0][:300]}"
+    return "Volatility plugin execution failed with unknown error."
+
+
+def detect_os(dump_path: str) -> str:
+    real_path = os.path.realpath(dump_path)
+    sample_data = parse_sample_forensic_artifact(real_path)
+    if sample_data:
+        return str(sample_data.get("os_type", "windows")).lower()
+
+    try:
+        with open(real_path, "rb") as f:
+            header = f.read(16384)
+            if b"PAGEDUMP" in header or b"PAGEHASH" in header or b"MDMP" in header or b"Microsoft" in header:
+                return "windows"
+            if b"\x7fELF" in header or b"Linux version" in header:
+                return "linux"
+    except Exception:
+        pass
+
+    ok_win, win_rows, _ = run_volatility_plugin(real_path, "windows.info", timeout=20)
+    if ok_win and win_rows:
+        return "windows"
+
+    return "windows"
+
+
 def run_volatility_plugin(
     dump_path: str,
     plugin: str,
     timeout: int = 180
 ) -> Tuple[bool, List[Dict[str, Any]], str]:
-    """
-    Executes a Volatility 3 plugin against a memory dump using the JSON renderer.
-    
-    :param dump_path: Path to memory dump (.raw, .vmem, .dmp, etc.)
-    :param plugin: Volatility 3 plugin (e.g. 'windows.pslist', 'windows.malfind')
-    :return: (success, parsed_rows, error_message)
-    """
     dump_path = os.path.abspath(dump_path)
     if not os.path.isfile(dump_path):
         return False, [], f"Memory dump file does not exist: {dump_path}"
@@ -114,16 +161,15 @@ def run_volatility_plugin(
     if vol_bin:
         cmd = [vol_bin, "-f", dump_path, "-r", "json", plugin]
     else:
-        # Fallback to python module execution
         py_bin = sys.executable
         cmd = [py_bin, "-m", "volatility3.cli", "-f", dump_path, "-r", "json", plugin]
 
     stdout, stderr, rc = run_command(cmd, timeout=timeout)
 
     if rc != 0 and not stdout:
-        return False, [], f"Volatility execution failed (exit code {rc}): {stderr}"
+        clean_err = format_volatility_error(stdout, stderr)
+        return False, [], clean_err
 
-    # Extract clean JSON payload from stdout (ignoring framework banners/progress lines)
     json_candidate = stdout
     start_bracket = stdout.find("[")
     start_brace = stdout.find("{")
@@ -144,7 +190,6 @@ def run_volatility_plugin(
             return True, rows, ""
         return True, [], ""
     except json.JSONDecodeError:
-        # In case stdout is newline-delimited JSON (JSONL)
         rows = []
         for line in stdout.splitlines():
             line = line.strip()
@@ -158,32 +203,48 @@ def run_volatility_plugin(
         if rows:
             return True, rows, ""
         
-        # Friendly diagnostic if Volatility requirements were not satisfied
-        clean_err = stderr or stdout[:500]
-        if "Unsatisfied requirement" in stdout or "layer_name" in stdout:
-            clean_err = "Volatility: Memory layer/symbols not recognized. Ensure image is acquired cleanly (.raw/.vmem/.dmp) and OS profile matches."
-        return False, [], f"Volatility error: {clean_err}"
+        clean_err = format_volatility_error(stdout, stderr)
+        return False, [], clean_err
 
 
 def parse_sample_forensic_artifact(dump_path: str) -> Optional[Dict[str, Any]]:
-    """
-    If the file is a synthetic/sample JSON forensic artifact (for tests and portfolio demos),
-    loads and returns the structured data directly.
-    """
     if dump_path.endswith((".json", ".forensic")):
         try:
             with open(dump_path, "r", encoding="utf-8") as f:
                 data = json.load(f)
-                if "processes" in data or "malfind" in data:
+                if "processes" in data or "malfind" in data or "connections" in data:
                     return data
         except Exception:
             pass
     return None
 
 
+def normalize_iso_utc(ts_str: Optional[str]) -> str:
+    if not ts_str or str(ts_str).strip() in ("N/A", "None", ""):
+        return datetime.now(timezone.utc).isoformat()
+    s = str(ts_str).strip()
+    try:
+        if s.endswith("Z"):
+            s_core = s[:-1]
+            dt = datetime.fromisoformat(s_core).replace(tzinfo=timezone.utc)
+            return dt.isoformat()
+        if " " in s and "T" not in s:
+            s_iso = s.replace(" ", "T")
+            dt = datetime.fromisoformat(s_iso)
+            if dt.tzinfo is None:
+                dt = dt.replace(tzinfo=timezone.utc)
+            return dt.isoformat()
+        dt = datetime.fromisoformat(s)
+        if dt.tzinfo is None:
+            dt = dt.replace(tzinfo=timezone.utc)
+        return dt.isoformat()
+    except Exception:
+        return datetime.now(timezone.utc).isoformat()
+
+
 def analyze_dump(
     dump_path: str,
-    os_type: str = "windows",
+    os_type: str = "auto",
     conn=None,
     lock=None,
     timeout: int = 180
@@ -196,76 +257,173 @@ def analyze_dump(
             "error": err_msg,
             "sha256": "",
             "file_size": 0,
+            "os_type": os_type,
             "processes": [],
             "connections": [],
             "malfind_hits": [],
+            "hidden_processes": [],
             "suspicious_findings": []
         }
 
+    resolved_os = os_type.lower()
+    if resolved_os == "auto":
+        resolved_os = detect_os(real_path)
+
     sample_data = parse_sample_forensic_artifact(real_path)
+    processes: List[Dict[str, Any]] = []
+    connections: List[Dict[str, Any]] = []
+    malfind_hits: List[Dict[str, Any]] = []
+    psscan_processes: List[Dict[str, Any]] = []
+
     if sample_data:
         processes = sample_data.get("processes", [])
         connections = sample_data.get("connections", [])
         malfind_hits = sample_data.get("malfind", [])
+        psscan_processes = sample_data.get("psscan", [])
     else:
-        # Run real Volatility plugins
-        is_windows = os_type.lower() == "windows"
-        pslist_plugin = "windows.pslist" if is_windows else "linux.pslist"
-        netscan_plugin = "windows.netscan" if is_windows else "linux.sockstat"
-        malfind_plugin = "windows.malfind" if is_windows else "linux.malfind"
+        if resolved_os == "windows":
+            if os_type.lower() == "linux":
+                return {
+                    "success": False,
+                    "dump_file": real_path,
+                    "error": "OS mismatch: Cannot run Linux plugins on a Windows memory dump.",
+                    "sha256": sha256_hash,
+                    "file_size": file_size,
+                    "os_type": resolved_os,
+                    "processes": [],
+                    "connections": [],
+                    "malfind_hits": [],
+                    "hidden_processes": [],
+                    "suspicious_findings": []
+                }
+            ok_ps, ps_data, err_ps = run_volatility_plugin(dump_path, "windows.pslist", timeout=timeout)
+            if not ok_ps and err_ps:
+                return {
+                    "success": False,
+                    "dump_file": real_path,
+                    "error": err_ps,
+                    "sha256": sha256_hash,
+                    "file_size": file_size,
+                    "os_type": resolved_os,
+                    "processes": [],
+                    "connections": [],
+                    "malfind_hits": [],
+                    "hidden_processes": [],
+                    "suspicious_findings": []
+                }
+            processes = _normalize_pslist(ps_data)
 
-        # 1. PSLIST
-        ok_ps, ps_data, err_ps = run_volatility_plugin(dump_path, pslist_plugin, timeout=timeout)
-        processes = _normalize_pslist(ps_data)
+            ok_scan, scan_data, _ = run_volatility_plugin(dump_path, "windows.psscan", timeout=timeout)
+            if ok_scan:
+                psscan_processes = _normalize_pslist(scan_data)
 
-        # 2. NETSCAN
-        ok_net, net_data, err_net = run_volatility_plugin(dump_path, netscan_plugin, timeout=timeout)
-        connections = _normalize_netscan(net_data)
+            ok_net, net_data, _ = run_volatility_plugin(dump_path, "windows.netscan", timeout=timeout)
+            if ok_net:
+                connections = _normalize_netscan(net_data)
 
-        # 3. MALFIND
-        ok_mal, mal_data, err_mal = run_volatility_plugin(dump_path, malfind_plugin, timeout=timeout)
-        malfind_hits = _normalize_malfind(mal_data)
+            ok_mal, mal_data, _ = run_volatility_plugin(dump_path, "windows.malfind", timeout=timeout)
+            if ok_mal:
+                malfind_hits = _normalize_malfind(mal_data)
+        else:
+            if os_type.lower() == "windows":
+                return {
+                    "success": False,
+                    "dump_file": real_path,
+                    "error": "OS mismatch: Cannot run Windows plugins on a Linux memory dump.",
+                    "sha256": sha256_hash,
+                    "file_size": file_size,
+                    "os_type": resolved_os,
+                    "processes": [],
+                    "connections": [],
+                    "malfind_hits": [],
+                    "hidden_processes": [],
+                    "suspicious_findings": []
+                }
+            ok_ps, ps_data, err_ps = run_volatility_plugin(dump_path, "linux.pslist", timeout=timeout)
+            if not ok_ps:
+                return {
+                    "success": False,
+                    "dump_file": real_path,
+                    "error": err_ps,
+                    "sha256": sha256_hash,
+                    "file_size": file_size,
+                    "os_type": resolved_os,
+                    "processes": [],
+                    "connections": [],
+                    "malfind_hits": [],
+                    "hidden_processes": [],
+                    "suspicious_findings": []
+                }
+            processes = _normalize_pslist(ps_data)
 
-    # Security Analysis & Anomaly Correlation
+            ok_scan, scan_data, _ = run_volatility_plugin(dump_path, "linux.psscan", timeout=timeout)
+            if ok_scan:
+                psscan_processes = _normalize_pslist(scan_data)
+
+            ok_sock, sock_data, _ = run_volatility_plugin(dump_path, "linux.sockstat", timeout=timeout)
+            if ok_sock:
+                connections = _normalize_netscan(sock_data)
+
+            ok_mal, mal_data, _ = run_volatility_plugin(dump_path, "linux.malfind", timeout=timeout)
+            if ok_mal:
+                malfind_hits = _normalize_malfind(mal_data)
+
     suspicious_findings: List[Dict[str, Any]] = []
 
-    # Check processes
+    active_pids: Set[int] = {int(p["pid"]) for p in processes if "pid" in p and str(p["pid"]).isdigit()}
+    hidden_processes: List[Dict[str, Any]] = []
+    if psscan_processes:
+        for scan_p in psscan_processes:
+            scan_pid = scan_p.get("pid")
+            if scan_pid and str(scan_pid).isdigit() and int(scan_pid) not in active_pids:
+                hidden_processes.append(scan_p)
+                proc_time = normalize_iso_utc(scan_p.get("create_time"))
+                suspicious_findings.append({
+                    "category": "hidden_process",
+                    "severity": "medium",
+                    "title": f"Possible hidden or terminated process '{scan_p.get('name')}' (PID: {scan_pid})",
+                    "details": f"Process '{scan_p.get('name')}' (PID: {scan_pid}) was detected via kernel pool scanning (psscan) but is absent from the active process double-linked list (pslist); requires review.",
+                    "timestamp": proc_time
+                })
+
     for p in processes:
         pname = p.get("name", "").lower()
         pid = p.get("pid")
         ppid = p.get("ppid")
+        proc_time = normalize_iso_utc(p.get("create_time"))
 
         if pname in SUSPICIOUS_PROCESS_NAMES:
             reason = SUSPICIOUS_PROCESS_NAMES[pname]
+            is_critical = "mimikatz" in pname or "meterpreter" in pname
             suspicious_findings.append({
                 "category": "process",
-                "severity": "critical" if "mimikatz" in pname or "meterpreter" in pname else "warning",
-                "title": f"Suspicious Process '{p.get('name')}' (PID: {pid})",
-                "details": f"{reason}. Parent PID: {ppid}."
+                "severity": "critical" if is_critical else "medium",
+                "title": f"Possible suspicious process '{p.get('name')}' (PID: {pid})",
+                "details": f"{reason}; parent PID: {ppid}; requires review.",
+                "timestamp": proc_time
             })
 
-    # Check malfind injections (all malfind hits are high severity)
     for m in malfind_hits:
         suspicious_findings.append({
             "category": "memory_injection",
             "severity": "critical",
-            "title": f"Injected Code Region in {m.get('process_name', 'Process')} (PID: {m.get('pid')})",
-            "details": f"Memory page at {m.get('start_address', 'unknown')} with {m.get('protection', 'RWX')} permissions."
+            "title": f"Possible injected code region in {m.get('process_name', 'Process')} (PID: {m.get('pid')})",
+            "details": f"Memory page at {m.get('start_address', 'unknown')} with {m.get('protection', 'RWX')} permissions; requires review.",
+            "timestamp": normalize_iso_utc(None)
         })
 
-    # Check network connections
     for c in connections:
         foreign_port = c.get("foreign_port")
         state = c.get("state", "").upper()
-        if foreign_port in (4444, 1337, 8888, 6667) or state == "ESTABLISHED" and foreign_port == 23:
+        if foreign_port in (4444, 1337, 8888, 6667) or (state == "ESTABLISHED" and foreign_port == 23):
             suspicious_findings.append({
                 "category": "network",
-                "severity": "warning",
-                "title": f"Suspicious Memory Socket to Port {foreign_port}",
-                "details": f"PID {c.get('pid')} connected to {c.get('foreign_addr')}:{foreign_port} ({state})"
+                "severity": "high" if foreign_port in (4444, 1337) else "medium",
+                "title": f"Unusual memory socket to port {foreign_port}",
+                "details": f"PID {c.get('pid')} connected to {c.get('foreign_addr')}:{foreign_port} ({state}); requires review.",
+                "timestamp": normalize_iso_utc(None)
             })
 
-    # Log to Unified SQLite Database
     if conn is not None:
         log_event(
             conn,
@@ -277,22 +435,25 @@ def analyze_dump(
                 "dump_file": os.path.basename(real_path),
                 "sha256": sha256_hash,
                 "file_size": file_size,
-                "os_type": os_type,
+                "os_type": resolved_os,
                 "process_count": len(processes),
                 "connection_count": len(connections),
                 "malfind_hits": len(malfind_hits),
+                "hidden_processes_count": len(hidden_processes),
                 "suspicious_count": len(suspicious_findings)
             }
         )
 
         for finding in suspicious_findings:
+            event_ts = finding.get("timestamp") or normalize_iso_utc(None)
             log_event(
                 conn,
                 lock,
                 module="memory",
                 event_type=f"memory_{finding['category']}",
                 severity=finding["severity"],
-                details=finding
+                details=finding,
+                timestamp=event_ts
             )
 
     return {
@@ -300,25 +461,26 @@ def analyze_dump(
         "dump_file": real_path,
         "sha256": sha256_hash,
         "file_size": file_size,
-        "os_type": os_type,
+        "os_type": resolved_os,
         "process_count": len(processes),
         "connection_count": len(connections),
         "malfind_count": len(malfind_hits),
+        "hidden_process_count": len(hidden_processes),
         "processes": processes,
         "connections": connections,
         "malfind_hits": malfind_hits,
+        "hidden_processes": hidden_processes,
         "suspicious_findings": suspicious_findings
     }
 
 
 def _normalize_pslist(raw_rows: List[Dict[str, Any]]) -> List[Dict[str, Any]]:
-    """Normalizes Volatility pslist JSON structures."""
     normalized = []
     for r in raw_rows:
         pid = r.get("PID") or r.get("pid") or 0
         ppid = r.get("PPID") or r.get("ppid") or 0
         name = r.get("ImageFileName") or r.get("COMM") or r.get("name") or "unknown"
-        create_time = r.get("CreateTime") or r.get("created") or "N/A"
+        create_time = r.get("CreateTime") or r.get("created") or r.get("Start Time") or "N/A"
         threads = r.get("Threads") or r.get("threads") or 0
         normalized.append({
             "pid": int(pid) if str(pid).isdigit() else pid,
@@ -331,7 +493,6 @@ def _normalize_pslist(raw_rows: List[Dict[str, Any]]) -> List[Dict[str, Any]]:
 
 
 def _normalize_netscan(raw_rows: List[Dict[str, Any]]) -> List[Dict[str, Any]]:
-    """Normalizes Volatility netscan JSON structures."""
     normalized = []
     for r in raw_rows:
         proto = r.get("Proto") or r.get("proto") or "TCP"
@@ -357,7 +518,6 @@ def _normalize_netscan(raw_rows: List[Dict[str, Any]]) -> List[Dict[str, Any]]:
 
 
 def _normalize_malfind(raw_rows: List[Dict[str, Any]]) -> List[Dict[str, Any]]:
-    """Normalizes Volatility malfind JSON structures."""
     normalized = []
     for r in raw_rows:
         pid = r.get("PID") or r.get("pid") or 0
@@ -378,4 +538,3 @@ def _normalize_malfind(raw_rows: List[Dict[str, Any]]) -> List[Dict[str, Any]]:
             "hexdump": str(hex_dump)
         })
     return normalized
-

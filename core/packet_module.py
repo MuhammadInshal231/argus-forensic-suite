@@ -212,17 +212,26 @@ def analyze_pcap(
     unusual_ports_found: Dict[int, Dict[str, Any]] = {}
     anomalies: List[Dict[str, Any]] = []
 
+    first_packet_time = None
+    last_packet_time = None
+
     for pkt in packets:
         source = pkt.get("_source", {})
         layers = source.get("layers", {})
 
-        # Frame layer
         frame = layers.get("frame", {})
         pkt_len = int(frame.get("frame.len", 0))
         total_bytes += pkt_len
         protocols_str = frame.get("frame.protocols", "")
 
-        # Protocol categorization
+        raw_time = frame.get("frame.time_utc") or frame.get("frame.time")
+        pkt_time_str = None
+        if raw_time:
+            pkt_time_str = raw_time.strip().replace(" ", "T")
+            if not first_packet_time:
+                first_packet_time = pkt_time_str
+            last_packet_time = pkt_time_str
+
         proto_tag = "OTHER"
         if "http" in protocols_str or "tls" in protocols_str or "ssl" in protocols_str:
             proto_tag = "HTTPS/TLS" if ("tls" in protocols_str or "ssl" in protocols_str) else "HTTP"
@@ -239,7 +248,6 @@ def analyze_pcap(
 
         protocol_counter[proto_tag] += 1
 
-        # IP layer
         ip_layer = layers.get("ip", {})
         src_ip = ip_layer.get("ip.src")
         dst_ip = ip_layer.get("ip.dst")
@@ -248,7 +256,6 @@ def analyze_pcap(
             src_ip_counter[src_ip] += 1
             src_ip_bytes[src_ip] += pkt_len
 
-        # TCP / UDP layer
         tcp_layer = layers.get("tcp", {})
         udp_layer = layers.get("udp", {})
 
@@ -264,7 +271,6 @@ def analyze_pcap(
             if src_port_str and src_port_str.isdigit():
                 src_port = int(src_port_str)
 
-            # Check SYN scan heuristic: SYN flag set (0x02) without ACK
             try:
                 flags_val = int(flags_str, 16) if flags_str.startswith("0x") else int(flags_str)
                 if (flags_val & 0x02) and not (flags_val & 0x10):
@@ -289,11 +295,11 @@ def analyze_pcap(
                         "port": dst_port,
                         "packet_count": 0,
                         "proto": "TCP" if tcp_layer else "UDP",
-                        "sample_dst_ip": dst_ip
+                        "sample_dst_ip": dst_ip,
+                        "timestamp": pkt_time_str
                     }
                 unusual_ports_found[dst_port]["packet_count"] += 1
 
-        # Check for unencrypted HTTP traffic anomaly
         if "http" in layers:
             http_layer = layers["http"]
             uri = http_layer.get("http.request.uri")
@@ -301,24 +307,24 @@ def analyze_pcap(
             if uri:
                 anomalies.append({
                     "type": "unencrypted_http",
-                    "severity": "warning",
-                    "description": f"Cleartext HTTP request observed: {host or ''}{uri}",
+                    "severity": "medium",
+                    "description": f"Possible unencrypted HTTP request observed: {host or ''}{uri}; requires review",
                     "src_ip": src_ip,
-                    "dst_ip": dst_ip
+                    "dst_ip": dst_ip,
+                    "timestamp": pkt_time_str
                 })
 
-    # Detect Port Scan / SYN Flood Anomaly
     for scanner_ip, targeted_ports in syn_scan_tracker.items():
         if len(targeted_ports) >= 3:
             anomalies.append({
                 "type": "port_scan_detected",
-                "severity": "critical",
-                "description": f"Potential port sweep from {scanner_ip}: targeted {len(targeted_ports)} unique ports",
+                "severity": "high",
+                "description": f"Possible port sweep detected from {scanner_ip}: targeted {len(targeted_ports)} unique ports; requires review",
                 "src_ip": scanner_ip,
-                "targeted_ports": sorted(list(targeted_ports))[:20]
+                "targeted_ports": sorted(list(targeted_ports))[:20],
+                "timestamp": last_packet_time
             })
 
-    # Compute Top 10 Talkers
     top_talkers = []
     for ip, count in src_ip_counter.most_common(10):
         b_vol = src_ip_bytes.get(ip, 0)
@@ -330,7 +336,6 @@ def analyze_pcap(
             "percentage": pct
         })
 
-    # Compute Protocol Percentages
     proto_breakdown = {}
     for proto, count in protocol_counter.items():
         pct = round((count / total_packets * 100), 2) if total_packets > 0 else 0
@@ -342,9 +347,8 @@ def analyze_pcap(
         reverse=True
     )[:15]
 
-    # Log Events to Unified DB
     if conn is not None:
-        # Summary event
+        summary_time = last_packet_time or datetime.now(timezone.utc).isoformat()
         log_event(
             conn,
             lock,
@@ -357,10 +361,10 @@ def analyze_pcap(
                 "total_bytes": total_bytes,
                 "top_talker": top_talkers[0]["ip"] if top_talkers else "None",
                 "anomalies_count": len(anomalies)
-            }
+            },
+            timestamp=summary_time
         )
 
-        # Log security anomalies
         for anom in anomalies:
             log_event(
                 conn,
@@ -368,10 +372,10 @@ def analyze_pcap(
                 module="packet",
                 event_type=anom["type"],
                 severity=anom["severity"],
-                details=anom
+                details=anom,
+                timestamp=anom.get("timestamp") or summary_time
             )
 
-        # Log significant unusual ports
         for up in unusual_ports_list:
             if up["packet_count"] >= 1:
                 log_event(
@@ -379,8 +383,9 @@ def analyze_pcap(
                     lock,
                     module="packet",
                     event_type="unusual_port_traffic",
-                    severity="warning" if up["port"] in (23, 21, 445, 3389) else "info",
-                    details=up
+                    severity="medium" if up["port"] in (21, 23, 445, 3389) else "low",
+                    details=up,
+                    timestamp=up.get("timestamp") or summary_time
                 )
 
     return {

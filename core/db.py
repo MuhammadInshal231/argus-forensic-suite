@@ -26,6 +26,40 @@ CREATE INDEX IF NOT EXISTS idx_events_module ON events(module);
 _DEFAULT_DB_LOCK = threading.Lock()
 
 
+VALID_SEVERITIES = ("info", "low", "medium", "high", "critical")
+
+SEVERITY_MIGRATION_MAP = {
+    "warning": "medium",
+    "warn": "medium",
+    "err": "high",
+    "error": "high",
+    "crit": "critical",
+}
+
+
+def normalize_severity(sev: Optional[str]) -> str:
+    if not sev:
+        return "info"
+    s = sev.lower().strip()
+    if s in SEVERITY_MIGRATION_MAP:
+        return SEVERITY_MIGRATION_MAP[s]
+    if s in VALID_SEVERITIES:
+        return s
+    return "info"
+
+
+def migrate_db_severities(conn: sqlite3.Connection, lock: Optional[threading.Lock] = None) -> int:
+    use_lock = lock if lock is not None else _DEFAULT_DB_LOCK
+    total_migrated = 0
+    with use_lock:
+        cursor = conn.cursor()
+        for old_sev, new_sev in SEVERITY_MIGRATION_MAP.items():
+            cursor.execute("UPDATE events SET severity = ? WHERE LOWER(severity) = ?", (new_sev, old_sev))
+            total_migrated += cursor.rowcount
+        conn.commit()
+    return total_migrated
+
+
 def sanitize_csv_cell(val: Any) -> str:
     s = str(val) if val is not None else ""
     if s and s[0] in ("=", "+", "-", "@", "\t", "\r"):
@@ -50,6 +84,7 @@ def init_db(db_path: str = "workspace/argus.db") -> sqlite3.Connection:
     with conn:
         conn.execute("PRAGMA journal_mode=WAL;")
         conn.executescript(SCHEMA_SQL)
+        migrate_db_severities(conn)
 
     return conn
 
@@ -73,6 +108,8 @@ def log_event(
     else:
         details_str = str(details)
 
+    norm_severity = normalize_severity(severity)
+
     sql = """
     INSERT INTO events (module, event_type, severity, details, timestamp)
     VALUES (?, ?, ?, ?, ?)
@@ -80,7 +117,7 @@ def log_event(
 
     with use_lock:
         cursor = conn.cursor()
-        cursor.execute(sql, (module, event_type, severity, details_str, timestamp))
+        cursor.execute(sql, (module, event_type, norm_severity, details_str, timestamp))
         conn.commit()
         return cursor.lastrowid or 0
 

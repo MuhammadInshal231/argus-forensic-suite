@@ -27,25 +27,25 @@ ALLOWED_NETWORKS = [
 ALLOWED_HOSTNAMES = {"localhost", "localhost.localdomain"}
 
 RISKY_SERVICES_MAP = {
-    21: {"service": "ftp", "severity": "warning", "reason": "Plaintext authentication & unencrypted data transfer"},
-    23: {"service": "telnet", "severity": "critical", "reason": "Insecure plaintext remote terminal; credential sniffing target"},
-    69: {"service": "tftp", "severity": "warning", "reason": "Trivial FTP without authentication"},
-    79: {"service": "finger", "severity": "warning", "reason": "Information disclosure / user enumeration service"},
-    135: {"service": "msrpc", "severity": "warning", "reason": "Microsoft RPC endpoint mapper; lateral movement vector"},
-    139: {"service": "netbios-ssn", "severity": "warning", "reason": "Legacy NetBIOS session service"},
-    445: {"service": "microsoft-ds", "severity": "warning", "reason": "SMB service; risk of SMB exploits (EternalBlue) and relay attacks"},
-    512: {"service": "rexec", "severity": "critical", "reason": "Legacy unencrypted remote execution daemon"},
-    513: {"service": "rlogin", "severity": "critical", "reason": "Legacy unencrypted rlogin daemon"},
-    514: {"service": "rsh", "severity": "critical", "reason": "Legacy unencrypted remote shell daemon"},
-    1433: {"service": "ms-sql-s", "severity": "warning", "reason": "Database engine port directly exposed"},
-    1521: {"service": "oracle", "severity": "warning", "reason": "Oracle TNS listener directly exposed"},
-    3306: {"service": "mysql", "severity": "warning", "reason": "MySQL database port directly exposed"},
-    3389: {"service": "ms-wbt-server", "severity": "warning", "reason": "Remote Desktop Protocol (RDP) exposed; brute-force/BlueKeep target"},
-    5432: {"service": "postgresql", "severity": "warning", "reason": "PostgreSQL database port exposed"},
-    5900: {"service": "vnc", "severity": "warning", "reason": "VNC remote desktop exposed without TLS"},
-    6379: {"service": "redis", "severity": "critical", "reason": "Redis cache exposed; potential unauthenticated remote code execution"},
-    9200: {"service": "elasticsearch", "severity": "warning", "reason": "Elasticsearch API exposed without perimeter control"},
-    27017: {"service": "mongodb", "severity": "warning", "reason": "MongoDB database exposed; check for open authentication"},
+    21: {"service": "ftp", "severity": "medium", "reason": "Possible unencrypted file transfer and authentication; requires review"},
+    23: {"service": "telnet", "severity": "critical", "reason": "Possible unencrypted remote terminal session; requires review"},
+    69: {"service": "tftp", "severity": "medium", "reason": "Possible unauthenticated TFTP service; requires review"},
+    79: {"service": "finger", "severity": "low", "reason": "Possible user enumeration service active; requires review"},
+    135: {"service": "msrpc", "severity": "medium", "reason": "Possible Microsoft RPC endpoint exposed; requires review"},
+    139: {"service": "netbios-ssn", "severity": "medium", "reason": "Possible NetBIOS session service active; requires review"},
+    445: {"service": "microsoft-ds", "severity": "medium", "reason": "Possible SMB service exposed; requires review for SMB signing and access controls"},
+    512: {"service": "rexec", "severity": "high", "reason": "Possible legacy unencrypted remote execution daemon; requires review"},
+    513: {"service": "rlogin", "severity": "high", "reason": "Possible legacy unencrypted rlogin daemon; requires review"},
+    514: {"service": "rsh", "severity": "high", "reason": "Possible legacy unencrypted remote shell daemon; requires review"},
+    1433: {"service": "ms-sql-s", "severity": "medium", "reason": "Database engine port directly accessible; requires review"},
+    1521: {"service": "oracle", "severity": "medium", "reason": "Oracle TNS listener directly accessible; requires review"},
+    3306: {"service": "mysql", "severity": "medium", "reason": "MySQL database port directly accessible; requires review"},
+    3389: {"service": "ms-wbt-server", "severity": "medium", "reason": "Remote Desktop Protocol (RDP) exposed; requires review for authentication policy"},
+    5432: {"service": "postgresql", "severity": "medium", "reason": "PostgreSQL database port directly accessible; requires review"},
+    5900: {"service": "vnc", "severity": "medium", "reason": "VNC remote framebuffer exposed; requires review for transport encryption"},
+    6379: {"service": "redis", "severity": "high", "reason": "Possible unauthenticated Redis cache instance; requires review"},
+    9200: {"service": "elasticsearch", "severity": "medium", "reason": "Elasticsearch REST interface exposed; requires review"},
+    27017: {"service": "mongodb", "severity": "medium", "reason": "MongoDB database interface exposed; requires review"},
 }
 
 
@@ -287,11 +287,11 @@ def parse_nmap_xml(xml_string: str) -> Tuple[str, List[Dict[str, Any]], Dict[str
             severity = risk_meta["severity"]
             risk_desc = risk_meta["reason"]
         elif service_name in ("http", "telnet", "ftp"):
-            severity = "warning"
-            risk_desc = f"Unencrypted service '{service_name}' identified"
+            severity = "medium"
+            risk_desc = f"Possible unencrypted service '{service_name}' identified; requires review"
         else:
             severity = "info"
-            risk_desc = "Standard open service detected"
+            risk_desc = "Standard open service identified; routine finding"
 
         ports_found.append({
             "port": port_id,
@@ -399,7 +399,7 @@ def run_scan(
         }
 
     host_status, ports, meta = parse_nmap_xml(stdout)
-    risky_count = sum(1 for p in ports if p["severity"] in ("warning", "critical"))
+    risky_count = sum(1 for p in ports if p["severity"] in ("low", "medium", "high", "critical"))
 
     if host_status == "up" and len(ports) == 0:
         diag_msg = (

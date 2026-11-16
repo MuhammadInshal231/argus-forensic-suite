@@ -9,6 +9,7 @@ import os
 from typing import Any, Dict, List, Optional
 
 from PyQt6.QtCore import Qt
+from PyQt6.QtGui import QColor
 from PyQt6.QtWidgets import (
     QComboBox,
     QFileDialog,
@@ -44,12 +45,10 @@ class TimelineTab(QWidget):
         layout.setSpacing(12)
         layout.setContentsMargins(16, 16, 16, 16)
 
-        # 1. Filter & Search Toolbar Card
         filter_card = QFrame()
         filter_card.setProperty("class", "CardFrame")
         filter_layout = QHBoxLayout(filter_card)
 
-        # Module Filter
         mod_vbox = QVBoxLayout()
         mod_vbox.addWidget(QLabel("Module Filter:"))
         self.module_combo = QComboBox()
@@ -61,19 +60,30 @@ class TimelineTab(QWidget):
         mod_vbox.addWidget(self.module_combo)
         filter_layout.addLayout(mod_vbox, stretch=2)
 
-        # Severity Filter
         sev_vbox = QVBoxLayout()
         sev_vbox.addWidget(QLabel("Severity Filter:"))
         self.sev_combo = QComboBox()
         self.sev_combo.addItem("All Severities", "all")
-        self.sev_combo.addItem("🔴 Critical Only", "critical")
-        self.sev_combo.addItem("🟡 Warnings & Critical", "warning")
-        self.sev_combo.addItem("🔵 Info Only", "info")
+        self.sev_combo.addItem("🔴 Critical", "critical")
+        self.sev_combo.addItem("🟠 High", "high")
+        self.sev_combo.addItem("🟡 Medium", "medium")
+        self.sev_combo.addItem("🟢 Low", "low")
+        self.sev_combo.addItem("🔵 Info", "info")
         self.sev_combo.currentIndexChanged.connect(self.refresh_timeline)
         sev_vbox.addWidget(self.sev_combo)
         filter_layout.addLayout(sev_vbox, stretch=2)
 
-        # Keyword Search
+        limit_vbox = QVBoxLayout()
+        limit_vbox.addWidget(QLabel("Display Cap:"))
+        self.limit_combo = QComboBox()
+        self.limit_combo.addItem("100 Events", 100)
+        self.limit_combo.addItem("250 Events", 250)
+        self.limit_combo.addItem("500 Events", 500)
+        self.limit_combo.addItem("All Events", 0)
+        self.limit_combo.currentIndexChanged.connect(self.refresh_timeline)
+        limit_vbox.addWidget(self.limit_combo)
+        filter_layout.addLayout(limit_vbox, stretch=2)
+
         search_vbox = QVBoxLayout()
         search_vbox.addWidget(QLabel("Search Keywords:"))
         self.search_input = QLineEdit()
@@ -82,7 +92,6 @@ class TimelineTab(QWidget):
         search_vbox.addWidget(self.search_input)
         filter_layout.addLayout(search_vbox, stretch=3)
 
-        # Action Buttons
         btn_vbox = QVBoxLayout()
         btn_vbox.addWidget(QLabel("Actions:"))
         btn_row = QHBoxLayout()
@@ -101,12 +110,11 @@ class TimelineTab(QWidget):
 
         layout.addWidget(filter_card)
 
-        # 2. Metric Summary Cards
         metric_layout = QHBoxLayout()
         self.card_total = self._create_metric_card("CORRELATED EVENTS", "0", "#58a6ff")
         self.card_crit = self._create_metric_card("CRITICAL ALERTS", "0", "#f85149")
-        self.card_warn = self._create_metric_card("WARNINGS", "0", "#d29922")
-        self.card_info = self._create_metric_card("INFORMATIONAL", "0", "#79c0ff")
+        self.card_warn = self._create_metric_card("HIGH / MEDIUM", "0", "#d29922")
+        self.card_info = self._create_metric_card("LOW / INFO", "0", "#79c0ff")
 
         metric_layout.addWidget(self.card_total)
         metric_layout.addWidget(self.card_crit)
@@ -114,10 +122,8 @@ class TimelineTab(QWidget):
         metric_layout.addWidget(self.card_info)
         layout.addLayout(metric_layout)
 
-        # 3. Splitter: Chronological Table (Top) & Detail Inspector (Bottom)
         splitter = QSplitter(Qt.Orientation.Vertical)
 
-        # Events Table Card
         table_card = QFrame()
         table_card.setProperty("class", "CardFrame")
         table_layout = QVBoxLayout(table_card)
@@ -140,7 +146,6 @@ class TimelineTab(QWidget):
 
         splitter.addWidget(table_card)
 
-        # Detail Inspector Card
         detail_card = QFrame()
         detail_card.setProperty("class", "CardFrame")
         detail_layout = QVBoxLayout(detail_card)
@@ -156,7 +161,6 @@ class TimelineTab(QWidget):
 
         layout.addWidget(splitter, stretch=1)
 
-        # Initial data load
         self.refresh_timeline()
 
     def _create_metric_card(self, title: str, initial_val: str, color_hex: str) -> QFrame:
@@ -177,24 +181,27 @@ class TimelineTab(QWidget):
     def refresh_timeline(self, *args):
         mod = self.module_combo.currentData()
         sev = self.sev_combo.currentData()
+        limit_data = self.limit_combo.currentData()
+        limit_val = limit_data if limit_data and limit_data > 0 else None
         query_text = self.search_input.text().strip() or None
 
         events = self.suite.get_timeline(
             module=mod if mod != "all" else None,
             severity=sev if sev != "all" else None,
+            limit=limit_val,
             search=query_text
         )
         self._current_events = events
 
-        # Compute stats
         stats = self.suite.get_statistics()
         by_sev = stats.get("by_severity", {})
         self.card_total._lbl_val.setText(str(len(events)))
         self.card_crit._lbl_val.setText(str(by_sev.get("critical", 0)))
-        self.card_warn._lbl_val.setText(str(by_sev.get("warning", 0)))
-        self.card_info._lbl_val.setText(str(by_sev.get("info", 0)))
+        high_med = by_sev.get("high", 0) + by_sev.get("medium", 0)
+        self.card_warn._lbl_val.setText(str(high_med))
+        low_info = by_sev.get("low", 0) + by_sev.get("info", 0)
+        self.card_info._lbl_val.setText(str(low_info))
 
-        # Populate Table
         self.timeline_table.setRowCount(0)
         for row_idx, ev in enumerate(events):
             self.timeline_table.insertRow(row_idx)
@@ -202,25 +209,26 @@ class TimelineTab(QWidget):
             self.timeline_table.setItem(row_idx, 0, QTableWidgetItem(str(ev["id"])))
             self.timeline_table.setItem(row_idx, 1, QTableWidgetItem(ev["timestamp"]))
 
-            # Module icon & badge
             mod_name = ev["module"]
             mod_icon = "📡 Packet" if mod_name == "packet" else ("🎯 Scan" if mod_name == "scan" else "🧠 Memory")
             self.timeline_table.setItem(row_idx, 2, QTableWidgetItem(mod_icon))
 
-            # Severity badge with color
-            severity = (ev.get("severity") or "info").upper()
-            sev_item = QTableWidgetItem(severity)
-            if severity == "CRITICAL":
-                sev_item.setForeground(Qt.GlobalColor.red)
-            elif severity == "WARNING":
-                sev_item.setForeground(Qt.GlobalColor.yellow)
+            severity = (ev.get("severity") or "info").lower()
+            sev_item = QTableWidgetItem(severity.upper())
+            if severity == "critical":
+                sev_item.setForeground(QColor("#f85149"))
+            elif severity == "high":
+                sev_item.setForeground(QColor("#ff7b72"))
+            elif severity == "medium":
+                sev_item.setForeground(QColor("#d29922"))
+            elif severity == "low":
+                sev_item.setForeground(QColor("#3fb950"))
             else:
-                sev_item.setForeground(Qt.GlobalColor.cyan)
+                sev_item.setForeground(QColor("#58a6ff"))
             self.timeline_table.setItem(row_idx, 3, sev_item)
 
             self.timeline_table.setItem(row_idx, 4, QTableWidgetItem(ev["event_type"]))
 
-            # Summary snippet
             summary_snippet = self._build_summary_snippet(ev)
             self.timeline_table.setItem(row_idx, 5, QTableWidgetItem(summary_snippet))
 
@@ -236,15 +244,15 @@ class TimelineTab(QWidget):
         if ev_type == "open_port":
             return f"Port {d.get('port')}/{d.get('protocol')} open: {d.get('service')} {d.get('version', '')} - {d.get('risk_assessment', '')}"
         elif ev_type == "host_scan_completed":
-            return f"Nmap completed on {d.get('target')}: {d.get('open_ports')} open ports, {d.get('risky_services')} risky services."
+            return f"Nmap completed on {d.get('target')}: {d.get('open_ports')} open ports, {d.get('risky_services')} services requiring review."
         elif ev_type == "pcap_analysis_completed":
             return f"PCAP '{d.get('pcap_file')}': {d.get('total_packets')} pkts, top talker {d.get('top_talker')}."
         elif ev_type == "port_scan_detected":
-            return f"Port sweep alert from {d.get('src_ip')}: targeted {len(d.get('targeted_ports', []))} ports."
+            return f"Possible port sweep from {d.get('src_ip')}: targeted {len(d.get('targeted_ports', []))} ports; requires review."
         elif ev_type == "unencrypted_http":
-            return f"Cleartext HTTP alert: {d.get('description')} ({d.get('src_ip')} -> {d.get('dst_ip')})"
+            return f"Possible cleartext HTTP: {d.get('description')} ({d.get('src_ip')} -> {d.get('dst_ip')}); requires review."
         elif ev_type == "dump_analysis_completed":
-            return f"Memory dump '{d.get('dump_file')}': {d.get('process_count')} procs, {d.get('malfind_hits')} code injections."
+            return f"Memory dump '{d.get('dump_file')}': {d.get('process_count')} procs, {d.get('malfind_hits')} code injections, {d.get('hidden_processes_count', 0)} hidden procs."
         elif "memory" in ev_type:
             return f"{d.get('title', '')}: {d.get('details', '')}"
 
@@ -270,20 +278,24 @@ class TimelineTab(QWidget):
             self.detail_view.setText(f"{header}{formatted_json}\n\n{context_help}")
 
     def _generate_context_guidance(self, event: Dict[str, Any]) -> str:
-        ev_type = event.get("event_type", "")
         sev = (event.get("severity") or "").lower()
 
         if sev == "critical":
             return (
                 "--- FORENSIC TRIAGE ADVICE ---\n"
-                "[CRITICAL ALERT] Immediate investigation recommended. Correlate memory injected addresses "
-                "with network sockets and process command lines. Review surrounding pcap packets for active C2."
+                "[CRITICAL FINDING] Priority investigation recommended. Correlate memory injected addresses "
+                "with network sockets and process command lines. Review surrounding pcap packets for active communication."
             )
-        elif sev == "warning":
+        elif sev in ("high", "medium"):
             return (
                 "--- FORENSIC TRIAGE ADVICE ---\n"
-                "[WARNING] Insecure protocol or unusual port identified. Verify service authorization "
-                "against corporate asset baseline and evaluate firewall filtering rules."
+                "[INVESTIGATIVE LEAD] Potential indicator requiring review. Verify service authorization "
+                "against expected environment baseline and assess firewall filtering rules."
+            )
+        elif sev == "low":
+            return (
+                "--- FORENSIC TRIAGE ADVICE ---\n"
+                "[LOW SEVERITY] Routine environmental finding detected. Cataloged for contextual correlation."
             )
         return "--- FORENSIC NOTE ---\nRoutine forensic artifact successfully indexed into unified investigation database."
 
@@ -312,4 +324,3 @@ class TimelineTab(QWidget):
             )
         except Exception as exc:
             QMessageBox.critical(self, "Export Error", f"Failed to export timeline report:\n{exc}")
-

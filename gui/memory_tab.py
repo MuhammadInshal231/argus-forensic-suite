@@ -7,6 +7,7 @@ import os
 from typing import Any, Dict, Optional
 
 from PyQt6.QtCore import QThread, pyqtSignal, Qt
+from PyQt6.QtGui import QColor
 from PyQt6.QtWidgets import (
     QComboBox,
     QFileDialog,
@@ -30,7 +31,6 @@ from core.controller import ThreatForensicSuite
 
 
 class MemoryWorker(QThread):
-    """Asynchronous background worker for executing Volatility 3 plugins."""
     analysis_completed = pyqtSignal(dict)
     analysis_failed = pyqtSignal(str)
 
@@ -52,8 +52,6 @@ class MemoryWorker(QThread):
 
 
 class MemoryTab(QWidget):
-    """PyQt6 tab for memory forensics and volatility plugin inspection."""
-
     def __init__(self, suite: ThreatForensicSuite, parent=None):
         super().__init__(parent)
         self.suite = suite
@@ -65,7 +63,6 @@ class MemoryTab(QWidget):
         layout.setSpacing(12)
         layout.setContentsMargins(16, 16, 16, 16)
 
-        # 1. Target Controls Card
         ctrl_card = QFrame()
         ctrl_card.setProperty("class", "CardFrame")
         ctrl_layout = QVBoxLayout(ctrl_card)
@@ -76,7 +73,6 @@ class MemoryTab(QWidget):
 
         inputs_layout = QHBoxLayout()
 
-        # File path
         file_vbox = QVBoxLayout()
         file_vbox.addWidget(QLabel("Memory Dump File (.raw, .mem, .vmem, .dmp, .forensic):"))
         file_h_layout = QHBoxLayout()
@@ -93,16 +89,15 @@ class MemoryTab(QWidget):
         file_vbox.addLayout(file_h_layout)
         inputs_layout.addLayout(file_vbox, stretch=5)
 
-        # OS Type Dropdown
         os_vbox = QVBoxLayout()
         os_vbox.addWidget(QLabel("OS Architecture:"))
         self.os_combo = QComboBox()
+        self.os_combo.addItem("Auto-Detect OS", "auto")
         self.os_combo.addItem("Windows (windows.*)", "windows")
         self.os_combo.addItem("Linux (linux.*)", "linux")
         os_vbox.addWidget(self.os_combo)
         inputs_layout.addLayout(os_vbox, stretch=2)
 
-        # Analyze Button
         btn_vbox = QVBoxLayout()
         btn_vbox.addWidget(QLabel("Action:"))
         self.analyze_btn = QPushButton("🧠 Run Memory Forensics")
@@ -113,7 +108,10 @@ class MemoryTab(QWidget):
 
         ctrl_layout.addLayout(inputs_layout)
 
-        # Progress bar
+        self.hash_label = QLabel("SHA-256: None | Size: 0 bytes | OS Profile: N/A")
+        self.hash_label.setStyleSheet("color: #8b949e; font-size: 11px; font-family: monospace;")
+        ctrl_layout.addWidget(self.hash_label)
+
         self.progress_bar = QProgressBar()
         self.progress_bar.setRange(0, 0)
         self.progress_bar.setVisible(False)
@@ -121,7 +119,6 @@ class MemoryTab(QWidget):
 
         layout.addWidget(ctrl_card)
 
-        # 2. Metric Summary Cards
         metric_layout = QHBoxLayout()
         self.card_file = self._create_metric_card("TARGET DUMP", "None", "#8b949e")
         self.card_procs = self._create_metric_card("ACTIVE PROCESSES", "0", "#58a6ff")
@@ -134,10 +131,8 @@ class MemoryTab(QWidget):
         metric_layout.addWidget(self.card_malfind)
         layout.addLayout(metric_layout)
 
-        # 3. Sub-Tabbed Forensic Views
         self.sub_tabs = QTabWidget()
 
-        # Tab A: Process List
         self.proc_table = QTableWidget(0, 6)
         self.proc_table.setHorizontalHeaderLabels([
             "PID", "PPID", "Process Name", "Creation Time (UTC)", "Threads", "Security Flags"
@@ -152,10 +147,9 @@ class MemoryTab(QWidget):
         self.proc_table.verticalHeader().setVisible(False)
         self.sub_tabs.addTab(self.proc_table, "📊 Process Tree (pslist)")
 
-        # Tab B: Network Sockets
         self.net_table = QTableWidget(0, 7)
         self.net_table.setHorizontalHeaderLabels([
-            "Proto", "Local Address:Port", "Foreign Address:Port", "State", "PID", "Owner Process", "Risk Flag"
+            "Proto", "Local Address:Port", "Foreign Address:Port", "State", "PID", "Owner Process", "Risk Assessment"
         ])
         h_net = self.net_table.horizontalHeader()
         h_net.setSectionResizeMode(0, QHeaderView.ResizeMode.ResizeToContents)
@@ -168,7 +162,6 @@ class MemoryTab(QWidget):
         self.net_table.verticalHeader().setVisible(False)
         self.sub_tabs.addTab(self.net_table, "🌐 Sockets & Connections (netscan)")
 
-        # Tab C: Code Injections (malfind)
         malfind_widget = QWidget()
         mal_vbox = QVBoxLayout(malfind_widget)
         mal_vbox.setContentsMargins(8, 8, 8, 8)
@@ -197,7 +190,6 @@ class MemoryTab(QWidget):
 
         layout.addWidget(self.sub_tabs, stretch=1)
 
-        # Set default to sample dump if exists
         sample_path = os.path.abspath("test_data/sample_memory.forensic")
         if os.path.exists(sample_path):
             self.file_input.setText(sample_path)
@@ -256,11 +248,16 @@ class MemoryTab(QWidget):
         self.analyze_btn.setEnabled(True)
         self.progress_bar.setVisible(False)
 
+        sha = result.get("sha256", "N/A")
+        sz = result.get("file_size", 0)
+        os_name = result.get("os_type", "unknown").upper()
+        self.hash_label.setText(f"SHA-256: {sha} | Size: {sz:,} bytes | OS Profile: {os_name}")
+
         processes = result.get("processes", [])
+        hidden_procs = result.get("hidden_processes", [])
         connections = result.get("connections", [])
         malfind_hits = result.get("malfind_hits", [])
 
-        # Update Metric Cards
         self.card_procs._lbl_val.setText(str(len(processes)))
         self.card_sockets._lbl_val.setText(str(len(connections)))
         self.card_malfind._lbl_val.setText(str(len(malfind_hits)))
@@ -268,29 +265,36 @@ class MemoryTab(QWidget):
             "color: #f85149;" if len(malfind_hits) > 0 else "color: #3fb950;"
         )
 
-        # 1. Populate Processes
         self.proc_table.setRowCount(0)
-        for row_idx, p in enumerate(processes):
+        all_display_procs = list(processes)
+        for hp in hidden_procs:
+            hp_copy = dict(hp)
+            hp_copy["_is_hidden"] = True
+            all_display_procs.append(hp_copy)
+
+        for row_idx, p in enumerate(all_display_procs):
             self.proc_table.insertRow(row_idx)
             self.proc_table.setItem(row_idx, 0, QTableWidgetItem(str(p["pid"])))
-            self.proc_table.setItem(row_idx, 1, QTableWidgetItem(str(p["ppid"])))
+            self.proc_table.setItem(row_idx, 1, QTableWidgetItem(str(p.get("ppid", "N/A"))))
             self.proc_table.setItem(row_idx, 2, QTableWidgetItem(p["name"]))
-            self.proc_table.setItem(row_idx, 3, QTableWidgetItem(p["create_time"]))
-            self.proc_table.setItem(row_idx, 4, QTableWidgetItem(str(p["threads"])))
+            self.proc_table.setItem(row_idx, 3, QTableWidgetItem(str(p.get("create_time", "N/A"))))
+            self.proc_table.setItem(row_idx, 4, QTableWidgetItem(str(p.get("threads", 0))))
 
             pname_lower = p["name"].lower()
-            if "mimikatz" in pname_lower or "meterpreter" in pname_lower:
-                flag_item = QTableWidgetItem("CRITICAL: Known Hacktool")
-                flag_item.setForeground(Qt.GlobalColor.red)
+            if p.get("_is_hidden"):
+                flag_item = QTableWidgetItem("MEDIUM: Possible hidden process (psscan only)")
+                flag_item.setForeground(QColor("#d29922"))
+            elif "mimikatz" in pname_lower or "meterpreter" in pname_lower:
+                flag_item = QTableWidgetItem("CRITICAL: Possible hacktool; requires review")
+                flag_item.setForeground(QColor("#f85149"))
             elif "cmd.exe" in pname_lower or "powershell" in pname_lower:
-                flag_item = QTableWidgetItem("WARNING: Shell Execution")
-                flag_item.setForeground(Qt.GlobalColor.yellow)
+                flag_item = QTableWidgetItem("MEDIUM: Shell execution; requires review")
+                flag_item.setForeground(QColor("#d29922"))
             else:
-                flag_item = QTableWidgetItem("Normal System Process")
-                flag_item.setForeground(Qt.GlobalColor.gray)
+                flag_item = QTableWidgetItem("Routine System Process")
+                flag_item.setForeground(QColor("#8b949e"))
             self.proc_table.setItem(row_idx, 5, flag_item)
 
-        # 2. Populate Sockets
         self.net_table.setRowCount(0)
         for row_idx, c in enumerate(connections):
             self.net_table.insertRow(row_idx)
@@ -301,18 +305,18 @@ class MemoryTab(QWidget):
             self.net_table.setItem(row_idx, 4, QTableWidgetItem(str(c["pid"])))
             self.net_table.setItem(row_idx, 5, QTableWidgetItem(c["owner"]))
 
-            risk_flag = "Normal"
             f_port = c.get("foreign_port")
-            if f_port in (4444, 1337, 8888):
-                risk_flag = f"WARNING: Suspicious Port {f_port}"
-                risk_item = QTableWidgetItem(risk_flag)
-                risk_item.setForeground(Qt.GlobalColor.red)
+            if f_port in (4444, 1337):
+                risk_item = QTableWidgetItem(f"HIGH: Unusual Port {f_port}; requires review")
+                risk_item.setForeground(QColor("#ff7b72"))
+            elif f_port in (8888, 6667):
+                risk_item = QTableWidgetItem(f"MEDIUM: Unusual Port {f_port}; requires review")
+                risk_item.setForeground(QColor("#d29922"))
             else:
                 risk_item = QTableWidgetItem("Authorized Lab Traffic")
-                risk_item.setForeground(Qt.GlobalColor.gray)
+                risk_item.setForeground(QColor("#8b949e"))
             self.net_table.setItem(row_idx, 6, risk_item)
 
-        # 3. Populate Malfind
         self.malfind_table.setRowCount(0)
         self._current_malfind = malfind_hits
         for row_idx, m in enumerate(malfind_hits):
@@ -323,15 +327,15 @@ class MemoryTab(QWidget):
 
             prot_item = QTableWidgetItem(m["protection"])
             if "EXECUTE_READWRITE" in m["protection"]:
-                prot_item.setForeground(Qt.GlobalColor.red)
+                prot_item.setForeground(QColor("#f85149"))
             self.malfind_table.setItem(row_idx, 3, prot_item)
 
-            summary_item = QTableWidgetItem("CRITICAL: Unbacked executable RWX segment (Injected Payload)")
-            summary_item.setForeground(Qt.GlobalColor.red)
+            summary_item = QTableWidgetItem("CRITICAL: Possible injected RWX segment; requires review")
+            summary_item.setForeground(QColor("#f85149"))
             self.malfind_table.setItem(row_idx, 4, summary_item)
 
         if malfind_hits:
-            self.sub_tabs.setCurrentIndex(2)  # Focus Malfind if injections found
+            self.sub_tabs.setCurrentIndex(2)
             self.malfind_table.selectRow(0)
 
     def _on_malfind_selected(self):
