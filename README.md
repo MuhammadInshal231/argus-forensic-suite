@@ -7,23 +7,24 @@
 [![Policy: PECA 2016 Compliant](https://img.shields.io/badge/Policy-PECA%202016%20Compliant-orange)](ACCEPTABLE_USE.md)
 
 **Author:** Muhammad Inshal  
-**Target Platform:** Kali Linux (Exclusive)  
+**Version:** v1.0.0  
+**Target Platform:** Kali Linux  
 **Architecture:** Facade / Orchestration Pattern over Battle-Tested Forensics Engines  
 
 ---
 
-## 👁️ Overview & Name Rationale
+## 👁️ Overview
 
-Named after **Argus Panoptes**, the all-seeing giant of Greek mythology covered in a hundred vigilant eyes, **Project ARGUS** is a unified Security Operations Center (SOC) forensic dashboard. It unifies network traffic inspection, vulnerability port scanning, and volatile RAM memory forensics into a single coherent incident timeline.
+Named after **Argus Panoptes**, the hundred-eyed all-seeing guardian of Greek mythology, **Project ARGUS** is a desktop Security Operations Center (SOC) incident investigation platform. Built in Python and PyQt6, ARGUS orchestrates network traffic analysis, vulnerability port scanning, and volatile RAM forensics, synchronizing findings from disparate sources into a unified, UTC-aligned chronological timeline.
 
-ARGUS adheres to the foundational engineering principle: **Orchestrator, Not Reimplementer**. Rather than creating fragile, custom protocol parsers, ARGUS wraps and unifies three battle-tested industry standard tools:
+ARGUS follows a core engineering principle: **Orchestrator, Not Reimplementer**. Rather than relying on custom, fragile protocol parsers, ARGUS leverages battle-tested, peer-reviewed industry tools:
 
-| Module | Underlying Engine | Forensic Role |
+| Module | Underlying Engine | Key Capabilities |
 | :--- | :--- | :--- |
-| **Module A: Packet Analyzer** | `tshark` (Wireshark CLI) | Non-root live packet capture, protocol distribution & traffic anomaly detection |
-| **Module B: Vulnerability Scanner** | `nmap` | Structured XML service/version discovery with strict lab allowlist guardrails |
-| **Module C: Memory Forensics** | `volatility3` | Volatile RAM triage (process enumeration, network sockets, code injection via `malfind`) |
-| **Phase 6: Unified Timeline** | SQLite (WAL mode) | Cross-module chronological correlation with JSON/CSV forensic report generation |
+| **Module A: Packet Analyzer** | `tshark` (Wireshark) | Live promiscuous sniffing, protocol breakdown, top talkers, cleartext credential detection, SYN sweep heuristics |
+| **Module B: Vulnerability Scanner** | `nmap` | Non-blocking service and version detection (`-sV -T4 -Pn`), strict target allowlist with resolved-IP validation |
+| **Module C: Memory Forensics** | `volatility3` | Non-destructive dump hashing (SHA-256), OS auto-detection, process pool correlation (`psscan` vs `pslist`), `malfind` code injections |
+| **Phase 6: Unified Timeline** | SQLite (WAL mode) | Multi-engine event indexing, 5-level severity model (`info`, `low`, `medium`, `high`, `critical`), CSV/JSON export with formula injection protection |
 
 ---
 
@@ -31,13 +32,13 @@ ARGUS adheres to the foundational engineering principle: **Orchestrator, Not Rei
 
 ```mermaid
 graph TD
-    UI[PyQt6 Dark SOC Dashboard - MainWindow]
+    UI["PyQt6 Dark SOC Dashboard (MainWindow)"]
     
-    subgraph GUI Layer
-        T1[Packet Tab]
-        T2[Scan Tab]
-        T3[Memory Tab]
-        T4[Unified Timeline Tab]
+    subgraph "Presentation Layer (PyQt6)"
+        T1["Packet Analyzer Tab"]
+        T2["Vulnerability Scanner Tab"]
+        T3["Memory Forensics Tab"]
+        T4["Unified Timeline Tab"]
     end
 
     UI --> T1
@@ -45,8 +46,8 @@ graph TD
     UI --> T3
     UI --> T4
 
-    subgraph Facade Orchestration Layer
-        CTRL[ThreatForensicSuite - Controller]
+    subgraph "Facade Controller Layer"
+        CTRL["ThreatForensicSuite (core/controller.py)"]
     end
 
     T1 -->|pyqtSignal / QThread| CTRL
@@ -54,12 +55,12 @@ graph TD
     T3 -->|pyqtSignal / QThread| CTRL
     T4 -->|pyqtSignal / QThread| CTRL
 
-    subgraph Core Engines
-        PM[packet_module.py]
-        SM[scan_module.py]
-        MM[memory_module.py]
-        PR[process_runner.py]
-        DB[(argus.db - SQLite WAL)]
+    subgraph "Forensic Core Engines"
+        PM["Packet Engine (packet_module.py)"]
+        SM["Scan Engine (scan_module.py)"]
+        MM["Memory Engine (memory_module.py)"]
+        PR["Process Orchestrator (process_runner.py)"]
+        DB[("Unified Store (argus.db SQLite WAL)")]
     end
 
     CTRL --> PM
@@ -67,9 +68,9 @@ graph TD
     CTRL --> MM
     CTRL --> DB
 
-    PM --> PR -->|StreamingProcess / SIGTERM| TSHARK[tshark CLI]
-    SM --> PR -->|run_command| NMAP[nmap CLI]
-    MM --> PR -->|run_command| VOL3[volatility3 CLI]
+    PM --> PR -->|StreamingProcess / SIGTERM| TSHARK["tshark CLI"]
+    SM --> PR -->|run_command| NMAP["nmap CLI"]
+    MM --> PR -->|run_command| VOL3["volatility3 CLI"]
 
     PM -->|log_event| DB
     SM -->|log_event| DB
@@ -79,118 +80,154 @@ graph TD
 
 ---
 
-## 📂 Project Repository Structure
+## 🌟 Feature Breakdown by Module
 
-```text
-argus-forensic-suite/
-├── main.py                  # PyQt6 application launcher & CLI headless runner
-├── core/
-│   ├── __init__.py
-│   ├── controller.py        # ThreatForensicSuite (Model / Facade Controller)
-│   ├── db.py                # Thread-safe SQLite schema, WAL mode, event indexing
-│   ├── process_runner.py    # Subprocess execution, streaming, process group termination
-│   ├── packet_module.py     # Tshark wrapper (live capture, top talkers, unusual ports)
-│   ├── scan_module.py       # Nmap wrapper (RFC 1918 allowlist, XML parser, risky services)
-│   └── memory_module.py     # Volatility 3 wrapper (pslist, netscan, malfind injections)
-├── gui/
-│   ├── __init__.py
-│   ├── styles.py            # Dark SOC high-contrast QSS stylesheet
-│   ├── main_window.py       # QMainWindow hosting header, status pills, and tab views
-│   ├── packet_tab.py        # Live capture controls, BPF filters, offline PCAP metrics
-│   ├── scan_tab.py          # Target input, allowlist guardrail badge, Nmap port table
-│   ├── memory_tab.py        # Memory dump picker, process tree, socket view, malfind preview
-│   └── timeline_tab.py      # Unified chronological event feed, filters, detail inspector, export
-├── workspace/               # Runtime captures, export reports, and argus.db (gitignored)
-├── test_data/               # Safe sample pcaps and synthetic forensic test dumps
-├── tests/                   # Automated integration and phase verification tests
-├── requirements.txt         # Python dependencies (PyQt6, volatility3)
-├── README.md                # System documentation & usage blueprint
-├── LICENSE                  # MIT License
-├── ACCEPTABLE_USE.md        # Ethical and legal usage guidelines (PECA 2016)
-└── .gitignore               # Clean workspace isolation
-```
+### 📡 Module A: Packet Analyzer
+- **Live Promiscuous Capture:** Captures on active network interfaces (`lo`, `eth0`, `wlan0`) with user-defined BPF filters.
+- **Process Group Termination:** Spawns `tshark` in its own process group (`start_new_session=True`), ensuring clean `SIGTERM -> SIGKILL` teardown without orphaned `dumpcap` child processes.
+- **Offline PCAP Ingestion:** Rapid JSON parsing of existing `.pcap` / `.pcapng` files.
+- **Traffic Analytics:** Computes total packet volume, byte counts, and top 10 bandwidth talkers with percentage shares.
+- **Heuristic Indicators:**
+  - `unencrypted_http`: Surfaces cleartext HTTP authentication and administrative endpoints (`medium` severity).
+  - `port_scan_detected`: Detects TCP SYN port sweeps from external IPs without ACK responses (`medium` severity).
 
----
+### 🎯 Module B: Vulnerability Scanner
+- **Target Allowlist Guardrail:** Blocks unauthorized scanning by enforcing RFC 1918 private subnets (`127.0.0.0/8`, `10.0.0.0/8`, `172.16.0.0/12`, `192.168.0.0/16`) and local hostnames.
+- **Resolved IP Verification:** Resolves target hostnames and validates all resolved IP addresses against allowlist ranges before passing targets to Nmap, preventing DNS rebinding.
+- **Argument Injection Protection:** Rejects targets starting with `-` and prefixes all targets with `--` to prevent parameter injection.
+- **Diagnostic Host Feedback:** Recognizes when scanned hosts are up even when all scanned ports are closed or filtered, providing actionable feedback rather than reporting scan failures.
+- **Risky Service Triage:** Flags sensitive and insecure services (Telnet, FTP, SMB, RDP, Redis, VNC) with categorized severity tags and investigation guidance.
 
-## 🛡️ Legal Notice & Technical Guardrails
+### 🧠 Module C: Memory Forensics
+- **Forensic Image Integrity:** Validates regular files (`stat.S_ISREG`), verifies read permissions, and computes a SHA-256 cryptographic digest in 64 KB chunks upon ingestion without modifying source dumps.
+- **OS Auto-Detection:** Inspects memory headers (ELF, Windows crash dump headers, kernel banners) to automatically select architecture-specific plugin profiles.
+- **Plugin Isolation:** 
+  - Windows: `windows.pslist`, `windows.pstree`, `windows.psscan`, `windows.cmdline`, `windows.netscan`, `windows.malfind`.
+  - Linux: `linux.pslist`, `linux.pstree`, `linux.psscan`, `linux.sockstat`, `linux.malfind`, `linux.bash`.
+  - Rejects cross-OS plugin invocation with clear diagnostic error handling.
+- **Hidden Process Detection:** Correlates memory pool scanning (`psscan`) against active doubly-linked lists (`pslist`) to identify unlinked or terminated processes (`medium` severity lead).
+- **Injected RWX Region Analysis (`malfind`):** Identifies executable memory pages unbacked by disk modules, with disassembly and hex dump inspection.
 
-Project ARGUS is licensed under the **MIT License**. It is intended strictly for authorized security testing, forensic education, and research purposes only. The author accepts no liability for misuse, unauthorized scanning, or damages resulting from the use of this software. Users are responsible for complying with all applicable laws, including the **Prevention of Electronic Crimes Act (PECA) 2016**.
-
-1. **Target Allowlist Enforcement:** `core/scan_module.py` enforces a strict allowlist restricting scan targets strictly to loopback (`127.0.0.1`, `localhost`) and RFC 1918 private subnets (`10.0.0.0/8`, `172.16.0.0/12`, `192.168.0.0/16`). Scans directed at external internet targets are rejected at the application level unless explicitly authorized.
-2. **Non-Root Packet Capture:** Packet analysis is engineered to function under the standard user `wireshark` group without requiring execution as root.
-3. **Controlled Forensic Artifacts:** Memory forensics is restricted to self-generated hypervisor snapshots (VirtualBox/VMware/QEMU) and verified educational training dumps.
+### ⏱️ Phase 6: Unified Chronological Timeline
+- **Event Correlation:** Normalizes findings from network packets, port scans, and RAM dumps into a single SQLite database running in WAL (Write-Ahead Logging) mode.
+- **True Event Timestamps:** Uses the event's native timestamp (packet capture time, scan probe time, or process creation time in UTC ISO-8601) rather than database insertion time.
+- **Standardized Severity Vocabulary:** Consistent 5-level scale: `critical`, `high`, `medium`, `low`, and `info`.
+- **Export Protection:** Generates forensic reports in JSON and CSV formats, sanitizing cells against formula injection (`=`, `+`, `-`, `@`, `\t`).
 
 ---
 
 ## 🚀 Setup & Installation (Kali Linux)
 
-### 1. System Prerequisites
-Ensure Kali system tools are installed:
+### 1. System Packages
+Install required underlying tools and virtual environment dependencies:
 ```bash
 sudo apt update
-sudo apt install -y wireshark-common nmap python3-venv python3-pip
+sudo apt install -y wireshark-common tshark nmap python3-venv python3-pip
 ```
 
-*(Optional: Grant non-root packet capture permissions if not already configured)*
+### 2. Configure Non-Root Capture Permissions
+Grant packet capture permissions to your standard user account:
 ```bash
 sudo usermod -aG wireshark $USER
 ```
+> [!IMPORTANT]
+> Log out and log back in to apply the `wireshark` group permission changes.
 
-### 2. Environment Setup
+### 3. Clone Repository & Setup Virtual Environment
 ```bash
-# Clone the repository
 git clone https://github.com/MuhammadInshal231/argus-forensic-suite.git
 cd argus-forensic-suite
 
-# Set up virtual environment and install dependencies
-python3 -m venv .venv
+# Create virtual environment sharing system site-packages
+python3 -m venv --system-site-packages .venv
 source .venv/bin/activate
+
+# Install Python requirements
 pip install -r requirements.txt
 ```
 
 ---
 
-## 💻 Usage
+## 💻 User Guide & Walkthrough
 
-### Launching the Dark SOC Dashboard
-To start the PyQt6 graphical user interface:
+### Launching the GUI Dashboard
 ```bash
 source .venv/bin/activate
 python main.py
 ```
 
-### Running the Headless Verification Pipeline
-For automated demonstrations, CI/CD validation, or headless environments:
+### Running the Headless Demo Pipeline
+To verify the full correlation pipeline without launching the GUI:
 ```bash
 source .venv/bin/activate
 python main.py --demo
 ```
 
+### Tab-by-Tab Operations
+1. **Packet Analyzer Tab:**
+   - Select network interface or click **Load Sample PCAP** to inspect sample capture traffic.
+   - Click **Start Capture** for real-time streaming, or specify BPF filters (e.g. `tcp port 80`).
+   - Inspect protocol breakdown, top talkers, and anomalies.
+2. **Vulnerability Scanner Tab:**
+   - Enter private lab target (e.g. `127.0.0.1` or `192.168.1.1`).
+   - Select scan profile: Fast Scan (`-F -sV`), Comprehensive (`-sV -sC`), or Custom.
+   - Click **Run Vulnerability Scan** and review discovered services and risk descriptions.
+3. **Memory Forensics Tab:**
+   - Select a memory image (`.raw`, `.vmem`, `.dmp`) or click **Load Lab Sample**.
+   - Set OS architecture to **Auto-Detect OS**, **Windows**, or **Linux**.
+   - Click **Run Memory Forensics** to inspect processes, active network sockets, and `malfind` code injections.
+4. **Unified Timeline Tab:**
+   - Click **Refresh** to correlate events across all three modules.
+   - Filter by module, severity level (`critical`, `high`, `medium`, `low`, `info`), display cap, or search keywords.
+   - Click **Export Report** to produce structured JSON or CSV forensic deliverables.
+
 ---
 
-## 🧪 Testing & Verification
+## 🧪 Automated Test Suite
 
-Project ARGUS includes an extensive automated test suite covering all phases of the blueprint:
+ARGUS maintains a multi-tiered test suite that can run completely offline without external network dependencies:
 
 ```bash
-# Run the full end-to-end integration test suite
+# Run all automated integration tests
 .venv/bin/python tests/test_e2e_integration.py
 
-# Run individual phase tests
-.venv/bin/python tests/test_phase1.py        # Process runner & thread-safe DB
-.venv/bin/python tests/test_phase2_packet.py # Packet capture & pcap metrics
-.venv/bin/python tests/test_phase3_scan.py   # Nmap scanner & allowlist check
-.venv/bin/python tests/test_phase4_memory.py # Volatility 3 plugins & malfind
-.venv/bin/python tests/test_controller.py    # ThreatForensicSuite facade
+# Run standalone offline parser and concurrency tests
+.venv/bin/python tests/test_offline_parsers.py
+
+# Run Phase 7B security hardening tests
+.venv/bin/python tests/test_phase7b_security.py
+
+# Run Phase 7C correctness and 5-level severity tests
+.venv/bin/python tests/test_phase7c_correctness.py
+
+# Run individual component suites
+.venv/bin/python tests/test_phase1_process.py
+.venv/bin/python tests/test_phase2_packet.py
+.venv/bin/python tests/test_phase3_scan.py
+.venv/bin/python tests/test_phase4_memory.py
+.venv/bin/python tests/test_controller.py
 ```
 
 ---
 
-## 📄 License & Disclaimer
+## ⚠️ Known Limitations
 
-Project ARGUS — Cyber Threat & Forensic Analysis Suite  
-Copyright (c) 2026 Muhammad Inshal  
+1. **Linux Kernel Symbols:** Volatility 3 requires an Intermediate Symbol File (ISF JSON) matching the exact target Linux kernel version. If missing, ARGUS surfaces a clear diagnostic rather than a traceback.
+2. **Heuristic Findings:** Detection rules (e.g. SYN sweep, suspicious process names, unusual listening ports) represent investigative leads requiring human analyst review, not definitive proof of compromise.
+3. **Platform Scope:** Engineered and tested specifically for Kali Linux on x86_64 architecture.
 
-Licensed under the **MIT License**. See [`LICENSE`](LICENSE) for the full license text.  
-Intended for authorized testing and education only; the author accepts no liability for misuse. See [`ACCEPTABLE_USE.md`](ACCEPTABLE_USE.md) for usage guidelines.
+---
 
+## 🛡️ Legal and Ethical Notice
+
+Project ARGUS is licensed under the **MIT License**. It is intended solely for authorized educational laboratories, defensive research, and approved penetration testing engagements. The author accepts no liability for unauthorized usage or network disruption. Operators are responsible for complying with all applicable computer crime legislation, including the **Prevention of Electronic Crimes Act (PECA) 2016**.
+
+---
+
+## 👏 Credits & Acknowledgments
+
+Project ARGUS stands on the shoulders of these industry-standard open-source projects:
+- **[Wireshark / TShark](https://www.wireshark.org/):** Network packet analysis and dissectors.
+- **[Nmap](https://nmap.org/):** Network discovery and vulnerability scanning.
+- **[Volatility 3](https://github.com/volatilityfoundation/volatility3):** Volatile memory forensics framework.
+- **[PyQt6](https://www.riverbankcomputing.com/software/pyqt/):** Python bindings for Qt application framework.
