@@ -116,3 +116,4 @@ Total frames: 4 | Total volume: 331 bytes
 1. **Linux Memory Symbols:** Volatility 3 requires an ISF symbol table matched to the exact kernel build of the captured Linux system.
 2. **Promiscuous Sniffing:** Packet capture requires appropriate raw socket permissions (`wireshark` group or elevated capability).
 3. **Scan Throttling:** Scans across large network boundaries are subject to local router rate limits; ARGUS defaults to `-T4 -Pn` to optimize performance while remaining stable.
+

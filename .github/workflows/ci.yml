@@ -54,3 +54,4 @@ jobs:
         env:
           QT_QPA_PLATFORM: offscreen
         run: python tests/test_e2e_integration.py
+
