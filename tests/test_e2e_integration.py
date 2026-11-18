@@ -23,16 +23,13 @@ from core.memory_module import analyze_dump, find_volatility_binary
 
 def test_phase0_deliverables():
     print("[*] Verifying Phase 0 Deliverables...")
-    for req_file in ["LICENSE", "ACCEPTABLE_USE.md", "requirements.txt", ".gitignore", "main.py"]:
+    for req_file in ["Inshal_Software_License.pdf", "ACCEPTABLE_USE.md", "requirements.txt", ".gitignore", "main.py"]:
         assert os.path.isfile(req_file), f"Missing required file: {req_file}"
 
     for req_dir in ["core", "gui", "workspace", "test_data"]:
         assert os.path.isdir(req_dir), f"Missing required directory: {req_dir}"
 
-    with open("LICENSE", "r") as f:
-        content = f.read()
-        assert "Muhammad Inshal" in content
-        assert "INSHAL SOFTWARE LICENSE" in content
+    assert os.path.getsize("Inshal_Software_License.pdf") > 0
 
     with open("ACCEPTABLE_USE.md", "r") as f:
         content = f.read()

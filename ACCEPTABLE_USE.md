@@ -1,6 +1,6 @@
 # Acceptable Use Guidelines — Project ARGUS
 
-Project ARGUS is released under the Inshal Software License. See `LICENSE` for the full
+Project ARGUS is released under the Inshal Software License. See `Inshal_Software_License.pdf` for the full
 license text. Copyright (c) 2026 Muhammad Inshal.
 
 This document is the author's statement of intended use. It is guidance only,

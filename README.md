@@ -3,7 +3,7 @@
 [![Platform: Kali Linux](https://img.shields.io/badge/Platform-Kali%20Linux-blue?logo=kalilinux&logoColor=white)](https://www.kali.org/)
 [![Language: Python 3.11+](https://img.shields.io/badge/Python-3.11%2B-brightgreen?logo=python&logoColor=white)](https://www.python.org/)
 [![GUI: PyQt6](https://img.shields.io/badge/GUI-PyQt6-41CD52?logo=qt&logoColor=white)](https://riverbankcomputing.com/software/pyqt/)
-[![License: Inshal Software License](https://img.shields.io/badge/License-Inshal%20Software%20License-blue.svg)](LICENSE)
+[![License: Inshal Software License](https://img.shields.io/badge/License-Inshal%20Software%20License-blue.svg)](Inshal_Software_License.pdf)
 [![Policy: PECA 2016 Compliant](https://img.shields.io/badge/Policy-PECA%202016%20Compliant-orange)](ACCEPTABLE_USE.md)
 
 **Author:** Muhammad Inshal  
@@ -226,7 +226,7 @@ Project ARGUS is released under the **Inshal Software License**. It is intended 
 
 ## 📄 License
 
-Licensed under the Inshal Software License. See the [`LICENSE`](LICENSE) file or [`Inshal_Software_License.pdf`](Inshal_Software_License.pdf).  
+Licensed under the Inshal Software License. See [`Inshal_Software_License.pdf`](Inshal_Software_License.pdf).  
 Free to use, modify and sell. Please credit the creator.  
 No illegal or unauthorized use.  
 
