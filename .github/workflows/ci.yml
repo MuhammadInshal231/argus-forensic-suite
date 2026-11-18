@@ -20,9 +20,15 @@ jobs:
           cache: "pip"
 
       - name: Install System Dependencies for GUI Headless Testing
+        env:
+          DEBIAN_FRONTEND: noninteractive
         run: |
           sudo apt-get update
+          echo "wireshark-common wireshark-common/install-setuid boolean true" | sudo debconf-set-selections
           sudo apt-get install -y libxkbcommon-x11-0 libxcb-icccm4 libxcb-image0 libxcb-keysyms1 libxcb-randr0 libxcb-render-util0 libxcb-xinerama0 libxcb-xfixes0 libegl1 tshark
+          sudo usermod -aG wireshark $USER || true
+          sudo chmod 755 /usr/bin/dumpcap || true
+          sudo chmod 755 /usr/bin/tshark || true
 
       - name: Install Python Dependencies
         run: |

@@ -1,60 +1,578 @@
 [
   {
     "_index": "packets-2026-11-16",
-    "_type": "doc",
     "_score": null,
     "_source": {
       "layers": {
         "frame": {
           "frame.encap_type": "1",
-          "frame.time": "Nov 16, 2026 12:00:01.000000000 UTC",
-          "frame.time_utc": "2026-11-16 12:00:01.000000000",
+          "frame.time": "2026-11-16T17:59:56.001000000Z",
+          "frame.time_utc": "2026-11-16T17:59:56.001000000Z",
+          "frame.time_epoch": "2026-11-16T17:59:56.001000000Z",
+          "frame.offset_shift": "0.000000000",
+          "frame.time_relative": "0.000000000",
+          "frame.number": "1",
           "frame.len": "72",
-          "frame.protocols": "eth:ethertype:ip:tcp:http"
+          "frame.cap_len": "72",
+          "frame.marked": "0",
+          "frame.ignored": "0",
+          "frame.protocols": "eth:ethertype:ip:tcp:http",
+          "frame.encoding": "0"
+        },
+        "eth": {
+          "eth.dst": "00:11:22:33:44:55",
+          "eth.dst_tree": {
+            "eth.dst_resolved": "CIMSYS_33:44:55",
+            "eth.dst.oui": "4386",
+            "eth.dst.oui_resolved": "CIMSYS Inc",
+            "eth.dst.lg": "0",
+            "eth.dst.ig": "0",
+            "eth.addr": "00:11:22:33:44:55",
+            "eth.addr_resolved": "CIMSYS_33:44:55",
+            "eth.addr.oui": "4386",
+            "eth.addr.oui_resolved": "CIMSYS Inc",
+            "eth.lg": "0",
+            "eth.ig": "0"
+          },
+          "eth.src": "66:77:88:99:aa:bb",
+          "eth.src_tree": {
+            "eth.src_resolved": "66:77:88:99:aa:bb",
+            "eth.src.oui": "6715272",
+            "eth.src.lg": "1",
+            "eth.src.ig": "0",
+            "eth.addr": "66:77:88:99:aa:bb",
+            "eth.addr_resolved": "66:77:88:99:aa:bb",
+            "eth.addr.oui": "6715272",
+            "eth.lg": "1",
+            "eth.ig": "0"
+          },
+          "eth.type": "0x0800",
+          "eth.stream": "0"
         },
         "ip": {
-          "ip.src": "192.168.1.150",
+          "ip.version": "4",
+          "ip.hdr_len": "20",
+          "ip.dsfield": "0x00",
+          "ip.dsfield_tree": {
+            "ip.dsfield.dscp": "0",
+            "ip.dsfield.ecn": "0"
+          },
+          "ip.len": "58",
+          "ip.id": "0xd431",
+          "ip.flags": "0x02",
+          "ip.flags_tree": {
+            "ip.flags.rb": "0",
+            "ip.flags.df": "1",
+            "ip.flags.mf": "0"
+          },
+          "ip.frag_offset": "0",
+          "ip.ttl": "64",
+          "ip.proto": "6",
+          "ip.checksum": "0x0000",
+          "ip.checksum.status": "2",
+          "ip.src": "192.168.1.50",
+          "ip.addr": "192.168.1.50",
+          "ip.src_host": "192.168.1.50",
+          "ip.host": "192.168.1.50",
           "ip.dst": "142.250.190.46",
-          "ip.proto": "6"
+          "ip.addr": "142.250.190.46",
+          "ip.dst_host": "142.250.190.46",
+          "ip.host": "142.250.190.46",
+          "ip.stream": "0"
         },
         "tcp": {
-          "tcp.srcport": "49152",
-          "tcp.dstport": "80",
-          "tcp.flags": "0x0018"
+          "tcp.srcport": "52344",
+          "tcp.dstport": "443",
+          "tcp.port": "52344",
+          "tcp.port": "443",
+          "tcp.stream": "0",
+          "tcp.stream.pnum": "1",
+          "tcp.completeness": "0",
+          "tcp.completeness_tree": {
+            "tcp.completeness.rst": "0",
+            "tcp.completeness.fin": "0",
+            "tcp.completeness.data": "0",
+            "tcp.completeness.ack": "0",
+            "tcp.completeness.syn-ack": "0",
+            "tcp.completeness.syn": "0",
+            "tcp.completeness.str": "[ Null ]"
+          },
+          "tcp.len": "18",
+          "tcp.seq": "1",
+          "tcp.seq_raw": "1000",
+          "tcp.nxtseq": "19",
+          "tcp.ack": "1",
+          "tcp.ack_raw": "0",
+          "tcp.hdr_len": "20",
+          "tcp.flags": "0x0018",
+          "tcp.flags_tree": {
+            "tcp.flags.res": "0",
+            "tcp.flags.ae": "0",
+            "tcp.flags.cwr": "0",
+            "tcp.flags.ece": "0",
+            "tcp.flags.urg": "0",
+            "tcp.flags.ack": "1",
+            "tcp.flags.push": "1",
+            "tcp.flags.reset": "0",
+            "tcp.flags.syn": "0",
+            "tcp.flags.fin": "0",
+            "tcp.flags.str": "·······AP···"
+          },
+          "tcp.window_size_value": "65535",
+          "tcp.window_size": "65535",
+          "tcp.window_size_scalefactor": "-1",
+          "tcp.checksum": "0x0000",
+          "tcp.checksum.status": "2",
+          "tcp.urgent_pointer": "0",
+          "Timestamps": {
+            "tcp.time_relative": "0.000000000",
+            "tcp.time_delta": "0.000000000"
+          },
+          "tcp.stream.client.contiguity_count": "0",
+          "tcp.stream.server.contiguity_count": "1",
+          "tcp.payload": "47:45:54:20:2f:20:48:54:54:50:2f:31:2e:31:0d:0a:0d:0a"
         },
         "http": {
-          "http.request.method": "GET",
-          "http.request.uri": "/index.html",
-          "http.host": "example.com"
+          "_ws.expert": {
+            "http.tls_port": "",
+            "_ws.expert.message": "Unencrypted HTTP protocol detected over encrypted port, could indicate a dangerous misconfiguration.",
+            "_ws.expert.severity": "6291456",
+            "_ws.expert.group": "167772160"
+          },
+          "GET / HTTP/1.1\\r\\n": {
+            "http.request.method": "GET",
+            "http.request.uri": "/",
+            "http.request.version": "HTTP/1.1"
+          },
+          "\\r\\n": "",
+          "http.request": "1"
         }
       }
     }
   },
   {
     "_index": "packets-2026-11-16",
-    "_type": "doc",
     "_score": null,
     "_source": {
       "layers": {
         "frame": {
           "frame.encap_type": "1",
-          "frame.time": "Nov 16, 2026 12:00:02.000000000 UTC",
-          "frame.time_utc": "2026-11-16 12:00:02.000000000",
-          "frame.len": "54",
-          "frame.protocols": "eth:ethertype:ip:tcp"
+          "frame.time": "2026-11-16T17:59:56.050000000Z",
+          "frame.time_utc": "2026-11-16T17:59:56.050000000Z",
+          "frame.time_epoch": "2026-11-16T17:59:56.050000000Z",
+          "frame.offset_shift": "0.000000000",
+          "frame.time_delta": "0.049000000",
+          "frame.time_delta_displayed": "0.049000000",
+          "frame.time_relative": "0.049000000",
+          "frame.number": "2",
+          "frame.len": "71",
+          "frame.cap_len": "71",
+          "frame.marked": "0",
+          "frame.ignored": "0",
+          "frame.protocols": "eth:ethertype:ip:udp:dns",
+          "frame.encoding": "0"
+        },
+        "eth": {
+          "eth.dst": "00:11:22:33:44:55",
+          "eth.dst_tree": {
+            "eth.dst_resolved": "CIMSYS_33:44:55",
+            "eth.dst.oui": "4386",
+            "eth.dst.oui_resolved": "CIMSYS Inc",
+            "eth.dst.lg": "0",
+            "eth.dst.ig": "0",
+            "eth.addr": "00:11:22:33:44:55",
+            "eth.addr_resolved": "CIMSYS_33:44:55",
+            "eth.addr.oui": "4386",
+            "eth.addr.oui_resolved": "CIMSYS Inc",
+            "eth.lg": "0",
+            "eth.ig": "0"
+          },
+          "eth.src": "66:77:88:99:aa:bb",
+          "eth.src_tree": {
+            "eth.src_resolved": "66:77:88:99:aa:bb",
+            "eth.src.oui": "6715272",
+            "eth.src.lg": "1",
+            "eth.src.ig": "0",
+            "eth.addr": "66:77:88:99:aa:bb",
+            "eth.addr_resolved": "66:77:88:99:aa:bb",
+            "eth.addr.oui": "6715272",
+            "eth.lg": "1",
+            "eth.ig": "0"
+          },
+          "eth.type": "0x0800",
+          "eth.stream": "0"
         },
         "ip": {
+          "ip.version": "4",
+          "ip.hdr_len": "20",
+          "ip.dsfield": "0x00",
+          "ip.dsfield_tree": {
+            "ip.dsfield.dscp": "0",
+            "ip.dsfield.ecn": "0"
+          },
+          "ip.len": "57",
+          "ip.id": "0xd432",
+          "ip.flags": "0x02",
+          "ip.flags_tree": {
+            "ip.flags.rb": "0",
+            "ip.flags.df": "1",
+            "ip.flags.mf": "0"
+          },
+          "ip.frag_offset": "0",
+          "ip.ttl": "64",
+          "ip.proto": "17",
+          "ip.checksum": "0x0000",
+          "ip.checksum.status": "2",
+          "ip.src": "192.168.1.50",
+          "ip.addr": "192.168.1.50",
+          "ip.src_host": "192.168.1.50",
+          "ip.host": "192.168.1.50",
+          "ip.dst": "8.8.8.8",
+          "ip.addr": "8.8.8.8",
+          "ip.dst_host": "8.8.8.8",
+          "ip.host": "8.8.8.8",
+          "ip.stream": "1"
+        },
+        "udp": {
+          "udp.srcport": "53535",
+          "udp.dstport": "53",
+          "udp.port": "53535",
+          "udp.port": "53",
+          "udp.length": "37",
+          "udp.checksum": "0x0000",
+          "udp.checksum_tree": {
+            "udp.checksum.status": "3"
+          },
+          "udp.stream": "0",
+          "udp.stream.pnum": "1",
+          "Timestamps": {
+            "udp.time_relative": "0.000000000",
+            "udp.time_delta": "0.000000000"
+          },
+          "udp.payload": "12:34:01:00:00:01:00:00:00:00:00:00:07:65:78:61:6d:70:6c:65:03:63:6f:6d:00:00:01:00:01"
+        },
+        "dns": {
+          "dns.id": "0x1234",
+          "dns.flags": "0x0100",
+          "dns.flags_tree": {
+            "dns.flags.response": "0",
+            "dns.flags.opcode": "0",
+            "dns.flags.truncated": "0",
+            "dns.flags.recdesired": "1",
+            "dns.flags.z": "0",
+            "dns.flags.checkdisable": "0"
+          },
+          "dns.count.queries": "1",
+          "dns.count.answers": "0",
+          "dns.count.auth_rr": "0",
+          "dns.count.add_rr": "0",
+          "Queries": {
+            "example.com: type A, class IN": {
+              "dns.qry.name": "example.com",
+              "dns.qry.name.len": "11",
+              "dns.count.labels": "2",
+              "dns.qry.type": "1",
+              "dns.qry.class": "0x0001"
+            }
+          }
+        }
+      }
+    }
+  },
+  {
+    "_index": "packets-2026-11-16",
+    "_score": null,
+    "_source": {
+      "layers": {
+        "frame": {
+          "frame.encap_type": "1",
+          "frame.time": "2026-11-16T17:59:57.001000000Z",
+          "frame.time_utc": "2026-11-16T17:59:57.001000000Z",
+          "frame.time_epoch": "2026-11-16T17:59:57.001000000Z",
+          "frame.offset_shift": "0.000000000",
+          "frame.time_delta": "0.951000000",
+          "frame.time_delta_displayed": "0.951000000",
+          "frame.time_relative": "1.000000000",
+          "frame.number": "3",
+          "frame.len": "54",
+          "frame.cap_len": "54",
+          "frame.marked": "0",
+          "frame.ignored": "0",
+          "frame.protocols": "eth:ethertype:ip:tcp",
+          "frame.encoding": "0"
+        },
+        "eth": {
+          "eth.dst": "00:11:22:33:44:55",
+          "eth.dst_tree": {
+            "eth.dst_resolved": "CIMSYS_33:44:55",
+            "eth.dst.oui": "4386",
+            "eth.dst.oui_resolved": "CIMSYS Inc",
+            "eth.dst.lg": "0",
+            "eth.dst.ig": "0",
+            "eth.addr": "00:11:22:33:44:55",
+            "eth.addr_resolved": "CIMSYS_33:44:55",
+            "eth.addr.oui": "4386",
+            "eth.addr.oui_resolved": "CIMSYS Inc",
+            "eth.lg": "0",
+            "eth.ig": "0"
+          },
+          "eth.src": "66:77:88:99:aa:bb",
+          "eth.src_tree": {
+            "eth.src_resolved": "66:77:88:99:aa:bb",
+            "eth.src.oui": "6715272",
+            "eth.src.lg": "1",
+            "eth.src.ig": "0",
+            "eth.addr": "66:77:88:99:aa:bb",
+            "eth.addr_resolved": "66:77:88:99:aa:bb",
+            "eth.addr.oui": "6715272",
+            "eth.lg": "1",
+            "eth.ig": "0"
+          },
+          "eth.type": "0x0800",
+          "eth.stream": "0"
+        },
+        "ip": {
+          "ip.version": "4",
+          "ip.hdr_len": "20",
+          "ip.dsfield": "0x00",
+          "ip.dsfield_tree": {
+            "ip.dsfield.dscp": "0",
+            "ip.dsfield.ecn": "0"
+          },
+          "ip.len": "40",
+          "ip.id": "0xd431",
+          "ip.flags": "0x02",
+          "ip.flags_tree": {
+            "ip.flags.rb": "0",
+            "ip.flags.df": "1",
+            "ip.flags.mf": "0"
+          },
+          "ip.frag_offset": "0",
+          "ip.ttl": "64",
+          "ip.proto": "6",
+          "ip.checksum": "0x0000",
+          "ip.checksum.status": "2",
           "ip.src": "10.0.0.99",
+          "ip.addr": "10.0.0.99",
+          "ip.src_host": "10.0.0.99",
+          "ip.host": "10.0.0.99",
           "ip.dst": "192.168.1.1",
-          "ip.proto": "6"
+          "ip.addr": "192.168.1.1",
+          "ip.dst_host": "192.168.1.1",
+          "ip.host": "192.168.1.1",
+          "ip.stream": "2"
         },
         "tcp": {
-          "tcp.srcport": "50000",
+          "tcp.srcport": "49152",
           "tcp.dstport": "23",
-          "tcp.flags": "0x0002"
+          "tcp.port": "49152",
+          "tcp.port": "23",
+          "tcp.stream": "1",
+          "tcp.stream.pnum": "1",
+          "tcp.completeness": "0",
+          "tcp.completeness_tree": {
+            "tcp.completeness.rst": "0",
+            "tcp.completeness.fin": "0",
+            "tcp.completeness.data": "0",
+            "tcp.completeness.ack": "0",
+            "tcp.completeness.syn-ack": "0",
+            "tcp.completeness.syn": "0",
+            "tcp.completeness.str": "[ Null ]"
+          },
+          "tcp.len": "0",
+          "tcp.seq": "0",
+          "tcp.seq_raw": "1000",
+          "tcp.nxtseq": "1",
+          "tcp.ack": "0",
+          "tcp.ack_raw": "0",
+          "tcp.hdr_len": "20",
+          "tcp.flags": "0x0002",
+          "tcp.flags_tree": {
+            "tcp.flags.res": "0",
+            "tcp.flags.ae": "0",
+            "tcp.flags.cwr": "0",
+            "tcp.flags.ece": "0",
+            "tcp.flags.urg": "0",
+            "tcp.flags.ack": "0",
+            "tcp.flags.push": "0",
+            "tcp.flags.reset": "0",
+            "tcp.flags.syn": "1",
+            "tcp.flags.syn_tree": {
+              "_ws.expert": {
+                "tcp.connection.syn": "",
+                "_ws.expert.message": "Connection establish request (SYN): server port 23",
+                "_ws.expert.severity": "2097152",
+                "_ws.expert.group": "33554432"
+              }
+            },
+            "tcp.flags.fin": "0",
+            "tcp.flags.str": "··········S·"
+          },
+          "tcp.window_size_value": "65535",
+          "tcp.window_size": "65535",
+          "tcp.checksum": "0x0000",
+          "tcp.checksum.status": "2",
+          "tcp.urgent_pointer": "0",
+          "Timestamps": {
+            "tcp.time_relative": "0.000000000",
+            "tcp.time_delta": "0.000000000"
+          },
+          "tcp.stream.client.contiguity_count": "0",
+          "tcp.stream.server.contiguity_count": "1"
+        }
+      }
+    }
+  },
+  {
+    "_index": "packets-2026-11-16",
+    "_score": null,
+    "_source": {
+      "layers": {
+        "frame": {
+          "frame.encap_type": "1",
+          "frame.time": "2026-11-16T17:59:57.050000000Z",
+          "frame.time_utc": "2026-11-16T17:59:57.050000000Z",
+          "frame.time_epoch": "2026-11-16T17:59:57.050000000Z",
+          "frame.offset_shift": "0.000000000",
+          "frame.time_delta": "0.049000000",
+          "frame.time_delta_displayed": "0.049000000",
+          "frame.time_relative": "1.049000000",
+          "frame.number": "4",
+          "frame.len": "134",
+          "frame.cap_len": "134",
+          "frame.marked": "0",
+          "frame.ignored": "0",
+          "frame.protocols": "eth:ethertype:ip:tcp:http",
+          "frame.encoding": "0"
+        },
+        "eth": {
+          "eth.dst": "00:11:22:33:44:55",
+          "eth.dst_tree": {
+            "eth.dst_resolved": "CIMSYS_33:44:55",
+            "eth.dst.oui": "4386",
+            "eth.dst.oui_resolved": "CIMSYS Inc",
+            "eth.dst.lg": "0",
+            "eth.dst.ig": "0",
+            "eth.addr": "00:11:22:33:44:55",
+            "eth.addr_resolved": "CIMSYS_33:44:55",
+            "eth.addr.oui": "4386",
+            "eth.addr.oui_resolved": "CIMSYS Inc",
+            "eth.lg": "0",
+            "eth.ig": "0"
+          },
+          "eth.src": "66:77:88:99:aa:bb",
+          "eth.src_tree": {
+            "eth.src_resolved": "66:77:88:99:aa:bb",
+            "eth.src.oui": "6715272",
+            "eth.src.lg": "1",
+            "eth.src.ig": "0",
+            "eth.addr": "66:77:88:99:aa:bb",
+            "eth.addr_resolved": "66:77:88:99:aa:bb",
+            "eth.addr.oui": "6715272",
+            "eth.lg": "1",
+            "eth.ig": "0"
+          },
+          "eth.type": "0x0800",
+          "eth.stream": "0"
+        },
+        "ip": {
+          "ip.version": "4",
+          "ip.hdr_len": "20",
+          "ip.dsfield": "0x00",
+          "ip.dsfield_tree": {
+            "ip.dsfield.dscp": "0",
+            "ip.dsfield.ecn": "0"
+          },
+          "ip.len": "120",
+          "ip.id": "0xd431",
+          "ip.flags": "0x02",
+          "ip.flags_tree": {
+            "ip.flags.rb": "0",
+            "ip.flags.df": "1",
+            "ip.flags.mf": "0"
+          },
+          "ip.frag_offset": "0",
+          "ip.ttl": "64",
+          "ip.proto": "6",
+          "ip.checksum": "0x0000",
+          "ip.checksum.status": "2",
+          "ip.src": "192.168.1.50",
+          "ip.addr": "192.168.1.50",
+          "ip.src_host": "192.168.1.50",
+          "ip.host": "192.168.1.50",
+          "ip.dst": "93.184.216.34",
+          "ip.addr": "93.184.216.34",
+          "ip.dst_host": "93.184.216.34",
+          "ip.host": "93.184.216.34",
+          "ip.stream": "3"
+        },
+        "tcp": {
+          "tcp.srcport": "51234",
+          "tcp.dstport": "80",
+          "tcp.port": "51234",
+          "tcp.port": "80",
+          "tcp.stream": "2",
+          "tcp.stream.pnum": "1",
+          "tcp.completeness": "0",
+          "tcp.completeness_tree": {
+            "tcp.completeness.rst": "0",
+            "tcp.completeness.fin": "0",
+            "tcp.completeness.data": "0",
+            "tcp.completeness.ack": "0",
+            "tcp.completeness.syn-ack": "0",
+            "tcp.completeness.syn": "0",
+            "tcp.completeness.str": "[ Null ]"
+          },
+          "tcp.len": "80",
+          "tcp.seq": "1",
+          "tcp.seq_raw": "1000",
+          "tcp.nxtseq": "81",
+          "tcp.ack": "1",
+          "tcp.ack_raw": "0",
+          "tcp.hdr_len": "20",
+          "tcp.flags": "0x0018",
+          "tcp.flags_tree": {
+            "tcp.flags.res": "0",
+            "tcp.flags.ae": "0",
+            "tcp.flags.cwr": "0",
+            "tcp.flags.ece": "0",
+            "tcp.flags.urg": "0",
+            "tcp.flags.ack": "1",
+            "tcp.flags.push": "1",
+            "tcp.flags.reset": "0",
+            "tcp.flags.syn": "0",
+            "tcp.flags.fin": "0",
+            "tcp.flags.str": "·······AP···"
+          },
+          "tcp.window_size_value": "65535",
+          "tcp.window_size": "65535",
+          "tcp.window_size_scalefactor": "-1",
+          "tcp.checksum": "0x0000",
+          "tcp.checksum.status": "2",
+          "tcp.urgent_pointer": "0",
+          "Timestamps": {
+            "tcp.time_relative": "0.000000000",
+            "tcp.time_delta": "0.000000000"
+          },
+          "tcp.stream.client.contiguity_count": "0",
+          "tcp.stream.server.contiguity_count": "1",
+          "tcp.payload": "47:45:54:20:2f:61:64:6d:69:6e:2f:6c:6f:67:69:6e:2e:70:68:70:20:48:54:54:50:2f:31:2e:31:0d:0a:48:6f:73:74:3a:20:69:6e:73:65:63:75:72:65:2e:6c:6f:63:61:6c:0d:0a:55:73:65:72:2d:41:67:65:6e:74:3a:20:4d:6f:7a:69:6c:6c:61:2f:35:2e:30:0d:0a:0d:0a"
+        },
+        "http": {
+          "GET /admin/login.php HTTP/1.1\\r\\n": {
+            "http.request.method": "GET",
+            "http.request.uri": "/admin/login.php",
+            "http.request.version": "HTTP/1.1"
+          },
+          "http.host": "insecure.local",
+          "http.request.line": "Host: insecure.local\r\n",
+          "http.user_agent": "Mozilla/5.0",
+          "http.request.line": "User-Agent: Mozilla/5.0\r\n",
+          "\\r\\n": "",
+          "http.request": "1",
+          "http.request.full_uri": "http://insecure.local/admin/login.php"
         }
       }
     }
   }
 ]
-
