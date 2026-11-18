@@ -1,11 +1,11 @@
 # Acceptable Use Guidelines — Project ARGUS
 
-Project ARGUS is released under the MIT License. See `LICENSE` for the full
+Project ARGUS is released under the Inshal Software License. See `LICENSE` for the full
 license text. Copyright (c) 2026 Muhammad Inshal.
 
 This document is the author's statement of intended use. It is guidance only,
 is not a condition of the license, and does not add to or restrict the
-permissions granted by the MIT License.
+permissions granted by the Inshal Software License.
 
 1. **Lawful use.** ARGUS is intended for lawful purposes only. It is not
    intended for gaining unauthorized access to systems or networks,
@@ -22,4 +22,4 @@ permissions granted by the MIT License.
    security use. Use in critical or internet-facing environments is at your
    own risk.
 4. **Donations.** Voluntary donations are welcome but never required. All
-   use remains free under the MIT License.
+   use remains free under the Inshal Software License.

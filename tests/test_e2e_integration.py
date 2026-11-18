@@ -32,7 +32,7 @@ def test_phase0_deliverables():
     with open("LICENSE", "r") as f:
         content = f.read()
         assert "Muhammad Inshal" in content
-        assert "MIT License" in content
+        assert "INSHAL SOFTWARE LICENSE" in content
 
     with open("ACCEPTABLE_USE.md", "r") as f:
         content = f.read()

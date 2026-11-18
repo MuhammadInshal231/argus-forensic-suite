@@ -78,7 +78,7 @@ class MainWindow(QMainWindow):
             "background-color: #21262d; color: #58a6ff; border: 1px solid #30363d; "
             "border-radius: 4px; padding: 4px 8px; font-weight: bold; font-size: 11px;"
         )
-        pill_legal = QLabel("⚖️ MIT License")
+        pill_legal = QLabel("⚖️ Inshal Software License")
         pill_legal.setStyleSheet(
             "background-color: #21262d; color: #d29922; border: 1px solid #30363d; "
             "border-radius: 4px; padding: 4px 8px; font-weight: bold; font-size: 11px;"

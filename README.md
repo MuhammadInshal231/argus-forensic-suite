@@ -3,7 +3,7 @@
 [![Platform: Kali Linux](https://img.shields.io/badge/Platform-Kali%20Linux-blue?logo=kalilinux&logoColor=white)](https://www.kali.org/)
 [![Language: Python 3.11+](https://img.shields.io/badge/Python-3.11%2B-brightgreen?logo=python&logoColor=white)](https://www.python.org/)
 [![GUI: PyQt6](https://img.shields.io/badge/GUI-PyQt6-41CD52?logo=qt&logoColor=white)](https://riverbankcomputing.com/software/pyqt/)
-[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
+[![License: Inshal Software License](https://img.shields.io/badge/License-Inshal%20Software%20License-blue.svg)](LICENSE)
 [![Policy: PECA 2016 Compliant](https://img.shields.io/badge/Policy-PECA%202016%20Compliant-orange)](ACCEPTABLE_USE.md)
 
 **Author:** Muhammad Inshal  
@@ -220,7 +220,18 @@ ARGUS maintains a multi-tiered test suite that can run completely offline withou
 
 ## 🛡️ Legal and Ethical Notice
 
-Project ARGUS is licensed under the **MIT License**. It is intended solely for authorized educational laboratories, defensive research, and approved penetration testing engagements. The author accepts no liability for unauthorized usage or network disruption. Operators are responsible for complying with all applicable computer crime legislation, including the **Prevention of Electronic Crimes Act (PECA) 2016**.
+Project ARGUS is released under the **Inshal Software License**. It is intended solely for authorized educational laboratories, defensive research, and approved penetration testing engagements. The author accepts no liability for unauthorized usage or network disruption. Operators are responsible for complying with all applicable computer crime legislation, including the **Prevention of Electronic Crimes Act (PECA) 2016**.
+
+---
+
+## 📄 License
+
+Licensed under the Inshal Software License. See the [`LICENSE`](LICENSE) file or [`Inshal_Software_License.pdf`](Inshal_Software_License.pdf).  
+Free to use, modify and sell. Please credit the creator.  
+No illegal or unauthorized use.  
+
+**Original Author:** Muhammad Inshal  
+**Original Repository:** https://github.com/MuhammadInshal231/argus-forensic-suite  
 
 ---
 
